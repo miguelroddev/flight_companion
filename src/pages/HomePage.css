@@ -1,0 +1,152 @@
+#center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  gap: 20px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.worldmap-image {
+  display: block;
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.intro-text h1 {
+  margin: 10;
+  color: white;
+}
+
+.intro-text p {
+  margin: 12px 0 0;
+}
+
+#enter-page {
+  min-height: 15vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.enter-button {
+  display: inline-block;
+  width: min(400px, 100%);
+  padding: 12px 24px;
+  box-sizing: border-box;
+  color: inherit;
+  text-decoration: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+#next-steps > div {
+  flex: 1 1 0;
+  padding: 32px;
+}
+
+#social {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 16px;
+}
+
+#next-steps ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 32px 0 16px;
+}
+
+#next-steps a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 6px 12px;
+  border-radius: 6px;
+
+  color: var(--text-h);
+  background: var(--social-bg);
+  text-decoration: none;
+  font-size: 16px;
+
+  transition: box-shadow 0.3s;
+}
+
+#next-steps a:hover {
+  box-shadow: var(--shadow);
+}
+
+.button-icon {
+  width: 18px;
+  height: 18px;
+}
+
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+}
+
+.ticks::before,
+.ticks::after {
+  content: "";
+  position: absolute;
+  top: -4.5px;
+  border: 5px solid transparent;
+}
+
+.ticks::before {
+  left: 0;
+  border-left-color: var(--border);
+}
+
+.ticks::after {
+  right: 0;
+  border-right-color: var(--border);
+}
+
+@media (max-width: 1024px) {
+  #next-steps {
+    flex-direction: column;
+  }
+
+  #next-steps > div {
+    padding: 24px 20px;
+  }
+
+  #next-steps ul {
+    margin-top: 20px;
+  }
+
+  #spacer {
+    height: 48px;
+  }
+}
