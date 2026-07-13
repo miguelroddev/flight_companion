@@ -1,0 +1,54 @@
+.map-page {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.map-navbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 10;
+
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+
+  padding: 10px 14px;
+
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 12px;
+
+  background: rgb(15 15 15 / 85%);
+  backdrop-filter: blur(12px);
+}
+
+.navbar-brand {
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.navbar-actions button {
+  padding: 8px 12px;
+
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 8px;
+
+  color: white;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.navbar-actions button:hover {
+  background: rgb(255 255 255 / 8%);
+}
