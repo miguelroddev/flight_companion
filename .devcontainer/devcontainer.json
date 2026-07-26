@@ -9,6 +9,9 @@
   },
   "customizations": {
     "vscode": {
+      "settings": {
+        "extensions.verifySignature": false
+      },
       "extensions": [
         "openai.chatgpt",
         "anthropic.claude-code",

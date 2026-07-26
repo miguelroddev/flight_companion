@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Airport } from "../../data/airports";
 import "./AirportSearchInput.css";
 
@@ -7,6 +7,7 @@ type AirportSearchInputProps = {
   airports: Airport[];
   selectedAirport: Airport | null;
   onSelect: (airport: Airport) => void;
+  onClear: () => void;
 };
 
 function AirportSearchInput({
@@ -14,9 +15,16 @@ function AirportSearchInput({
   airports,
   selectedAirport,
   onSelect,
+  onClear,
 }: AirportSearchInputProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    setQuery(
+      selectedAirport ? `${selectedAirport.iata} - ${selectedAirport.city}` : "",
+    );
+  }, [selectedAirport]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -34,7 +42,11 @@ function AirportSearchInput({
 
   function handleSelect(airport: Airport) {
     onSelect(airport);
-    setQuery(`${airport.iata} - ${airport.city}`);
+    setIsOpen(false);
+  }
+
+  function handleClear() {
+    onClear();
     setIsOpen(false);
   }
 
@@ -59,6 +71,17 @@ function AirportSearchInput({
           }}
         />
       </label>
+
+      {selectedAirport && (
+        <button
+          type="button"
+          className="airport-search-clear"
+          onClick={handleClear}
+          aria-label={`Clear ${label.toLowerCase()} airport`}
+        >
+          x
+        </button>
+      )}
 
       {isOpen && matchingAirports.length > 0 && (
         <ul className="airport-suggestions">

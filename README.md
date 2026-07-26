@@ -282,10 +282,10 @@ docker compose run --rm app npm run build
 
 * [x] Add airport search component
 * [x] Add local airport data
-* [ ] Improve autocomplete behavior
+* [x] Improve autocomplete behavior
 * [ ] Add keyboard navigation
-* [ ] Add selected airport markers
-* [ ] Draw initial route lines
+* [x] Add selected airport markers
+* [x] Draw initial route lines
 
 ### Phase 3 — Python FastAPI Backend
 

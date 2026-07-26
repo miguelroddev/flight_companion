@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/rodri/Desktop/github_projects/flight_companion diff)",
+      "Bash(git -C /c/Users/rodri/Desktop/github_projects/flight_companion log --oneline -10)",
+      "PowerShell(wsl -l -v)",
+      "PowerShell(Get-Service com.docker.service -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process \"Docker Desktop\" -ErrorAction SilentlyContinue)",
+      "PowerShell(wsl -d Ubuntu -e true)",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(docker compose *)",
+      "Bash(cat \"/c/Users/rodri/AppData/Roaming/Code/User/settings.json\" 2>/dev/null || echo \"FILE_NOT_FOUND\")",
+      "Read(//c/Users/rodri/AppData/Roaming/Code/User/**)",
+      "Bash(grep -o '.\\\\{80\\\\}wayland.\\\\{80\\\\}' -i \"/c/Users/rodri/.vscode/extensions/ms-vscode-remote.remote-containers-0.466.0/dist/spec-node/devContainersSpecCLI.js\" | head -50)",
+      "Read(//c/Users/rodri/.vscode/extensions/ms-vscode-remote.remote-containers-0.466.0/dist/spec-node/**)",
+      "Bash(node -e ' *)",
+      "Bash(grep -rli \"wayland\" \"/c/Users/rodri/.vscode/extensions/ms-vscode-remote.remote-containers-0.466.0/\" 2>/dev/null)",
+      "Read(//c/Users/rodri/.vscode/extensions/ms-vscode-remote.remote-containers-0.466.0//**)",
+      "Bash(npm run *)",
+      "Bash(node -e \"fetch\\('http://localhost:5174'\\).then\\(r=>r.status\\).then\\(console.log\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")",
+      "Bash(chromium-cli --help)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(npm ls *)",
+      "Bash(find / -maxdepth 4 -iname \"*playwright*\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\rodri\\AppData\\Roaming\\Code\\User"
+    ]
+  }
+}
