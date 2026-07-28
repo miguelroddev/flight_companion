@@ -23,7 +23,9 @@ type FlightMapProps = {
   onAirportClick: (airport: Airport) => void;
 };
 
-const FIT_BOUNDS_PADDING = { top: 120, bottom: 80, left: 80, right: 80 };
+// top is taller than the rest to clear the floating navbar, plus the
+// airport label callouts that render above a marker's point
+const FIT_BOUNDS_PADDING = { top: 100, bottom: 20, left: 20, right: 50 };
 
 function computeWorldCopyOffsets(map: {
   getZoom: () => number;
@@ -53,44 +55,9 @@ function lineFeature(
   };
 }
 
-type CameraCapableMap = {
-  cameraForBounds: (
-    bounds: [[number, number], [number, number]],
-    options?: { padding?: typeof FIT_BOUNDS_PADDING },
-  ) => { zoom?: number } | undefined;
-};
-
-/* 
-  tries to computer a hard cap zoomed out value
-  that only shows "1 map" (even if it's centered
-  somewhere outside the "world center")
-*/
-function computeCappedZoom(
-  map: CameraCapableMap,
-  centerLng: number,
-  centerLat: number,
-  lngSpan: number,
-  southLat: number,
-  northLat: number,
-): number {
-  const cappedLngSpan = Math.min(lngSpan, 360);
-  const halfSpan = cappedLngSpan / 2;
-
-  const fullBounds: [[number, number], [number, number]] = [
-    [centerLng - halfSpan, southLat],
-    [centerLng + halfSpan, northLat],
-  ];
-  const widthOnlyBounds: [[number, number], [number, number]] = [
-    [centerLng - halfSpan, centerLat - 0.01],
-    [centerLng + halfSpan, centerLat + 0.01],
-  ];
-
-  const natural = map.cameraForBounds(fullBounds, { padding: FIT_BOUNDS_PADDING });
-  const widthOnly = map.cameraForBounds(widthOnlyBounds, {
-    padding: FIT_BOUNDS_PADDING,
-  });
-
-  return Math.max(natural?.zoom ?? 1, widthOnly?.zoom ?? 1);
+function unwrapLng(lng: number, referenceLng: number): number {
+  const delta = ((((lng - referenceLng) % 360) + 540) % 360) - 180;
+  return referenceLng + delta;
 }
 
 function FlightMap({
@@ -140,49 +107,37 @@ function FlightMap({
       const east = Math.max(...lngs);
       const south = Math.min(...lats);
       const north = Math.max(...lats);
-      const centerLng = (west + east) / 2;
-      const centerLat = (south + north) / 2;
 
-      const zoom = computeCappedZoom(
-        map,
-        centerLng,
-        centerLat,
-        east - west,
-        south,
-        north,
+      map.fitBounds(
+        [
+          [west, south],
+          [east, north],
+        ],
+        { padding: FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
       );
-      map.flyTo({ center: [centerLng, centerLat], zoom, duration: CAMERA_DURATION });
       return;
     }
 
-    // makes the camera land on the anchor
-    const lngDelta = Math.max(
-      ...airports.map((airport) => {
-        const diff = Math.abs(airport.lng - anchorAirport.lng);
-        return diff > 180 ? 360 - diff : diff;
-      }),
-    );
-    const latDelta = Math.max(
-      ...airports.map((airport) => Math.abs(airport.lat - anchorAirport.lat)),
-    );
-    const northLat = Math.min(90, anchorAirport.lat + latDelta);
-    const southLat = Math.max(-90, anchorAirport.lat - latDelta);
+    // Fit only the airports actually on screen rather
+    // than every airport in the dataset
+    const visibleAirports = [
+      anchorAirport,
+      ...connectedAirports,
+      ...(otherAirport ? [otherAirport] : []),
+    ];
 
-    const zoom = computeCappedZoom(
-      map,
-      anchorAirport.lng,
-      anchorAirport.lat,
-      lngDelta * 2,
-      southLat,
-      northLat,
+    const unwrappedLngs = visibleAirports.map((airport) =>
+      unwrapLng(airport.lng, anchorAirport.lng),
     );
-    map.flyTo({
-      center: [anchorAirport.lng, anchorAirport.lat],
-      zoom,
-      duration: CAMERA_DURATION,
-    });
-    // The camera only reacts to changes in WHICH airport is "first"
-    // picking or changing the second one shouldn't move the map at all.
+    const lats = visibleAirports.map((airport) => airport.lat);
+
+    map.fitBounds(
+      [
+        [Math.min(...unwrappedLngs), Math.min(...lats)],
+        [Math.max(...unwrappedLngs), Math.max(...lats)],
+      ],
+      { padding: FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
+    );
   }, [anchorAirport]);
 
   const networkGeoJson = anchorAirport
@@ -231,6 +186,9 @@ function FlightMap({
         dragRotate={false}
         touchPitch={false}
         maxPitch={0}
+        // On narrow viewports, fitting a network with a very wide-flung
+        // connection can require zooming out past "1 world"
+        minZoom={-2}
       >
         <NavigationControl position="bottom-right" />
         <ScaleControl position="bottom-left" />

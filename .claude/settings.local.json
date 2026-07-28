@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config *)",
+      "Bash(echo \"confirmed global: $\\(git config --global user.email\\)\")",
+      "Bash(echo \"confirmed local: $\\(git config user.email\\)\")",
+      "Bash(git rebase *)",
+      "Bash(git push *)",
+      "Bash(git filter-branch -f --env-filter ' *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}
