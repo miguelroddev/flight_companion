@@ -9,7 +9,7 @@ import Map, {
 } from "react-map-gl/maplibre";
 
 import { airports, type Airport } from "../../data/airports";
-import { getConnectedAirports, getRoute } from "../../data/routes";
+import { getConnectedAirports } from "../../data/routes";
 import { greatCircleLine } from "./greatCircle";
 import type { SelectionRole } from "../../pages/MapPage";
 
@@ -25,7 +25,7 @@ type FlightMapProps = {
 
 // top is taller than the rest to clear the floating navbar, plus the
 // airport label callouts that render above a marker's point
-const FIT_BOUNDS_PADDING = { top: 100, bottom: 20, left: 20, right: 50 };
+const FIT_BOUNDS_PADDING = { top: 100, bottom: 50, left: 20, right: 50 };
 
 function computeWorldCopyOffsets(map: {
   getZoom: () => number;
@@ -82,17 +82,16 @@ function FlightMap({
   const otherAirport =
     anchorAirport === departureAirport ? arrivalAirport : departureAirport;
   const connectedAirports = anchorAirport
-    ? getConnectedAirports(anchorAirport.id)
+    ? getConnectedAirports(
+        anchorAirport.id,
+        anchorAirport === arrivalAirport ? "arrival" : "departure",
+      )
     : [];
   const previewAirports = (noSelection ? airports : connectedAirports).filter(
     (airport) =>
       airport.id !== departureAirport?.id && airport.id !== arrivalAirport?.id,
   );
 
-  const confirmedRoute =
-    departureAirport && arrivalAirport
-      ? getRoute(departureAirport.id, arrivalAirport.id)
-      : undefined;
   const confirmedTargetId = bothSelected ? otherAirport?.id : undefined;
 
   useEffect(() => {
@@ -148,16 +147,6 @@ function FlightMap({
         ),
       }
     : null;
-
-  let routeMidpoint: { lng: number; lat: number } | null = null;
-  if (departureAirport && arrivalAirport && confirmedRoute) {
-    const [midLng, midLat] = greatCircleLine(
-      departureAirport,
-      arrivalAirport,
-      2,
-    )[1];
-    routeMidpoint = { lng: midLng, lat: midLat };
-  }
 
   function syncWorldCopyOffsets(map: Parameters<typeof computeWorldCopyOffsets>[0]) {
     const next = computeWorldCopyOffsets(map);
@@ -297,21 +286,6 @@ function FlightMap({
                   <strong>{arrivalAirport.iata}</strong>
                   <small>{arrivalAirport.name}</small>
                 </span>
-              </div>
-            </Marker>
-          ))}
-
-        {routeMidpoint &&
-          confirmedRoute &&
-          worldCopyOffsets.map((offset) => (
-            <Marker
-              key={`badge-${offset}`}
-              longitude={routeMidpoint.lng + offset}
-              latitude={routeMidpoint.lat}
-              anchor="center"
-            >
-              <div className="route-airline-badge">
-                {confirmedRoute.airline}
               </div>
             </Marker>
           ))}

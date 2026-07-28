@@ -3,8 +3,10 @@ import { Link } from "react-router";
 
 import FlightMap from "../features/map/FlightMap";
 import AirportSearchInput from "../features/airports/AirportSearchInput";
+import RouteInfoPanel from "../features/route/RouteInfoPanel";
 
 import { airports, type Airport } from "../data/airports";
+import { getRoute } from "../data/routes";
 
 import "./MapPage.css";
 
@@ -60,6 +62,11 @@ function MapPage() {
     }
   }
 
+  const selectedRoute =
+    departureAirport && arrivalAirport
+      ? getRoute(departureAirport.id, arrivalAirport.id)
+      : undefined;
+
   return (
     <main className="map-page">
       <FlightMap
@@ -69,31 +76,41 @@ function MapPage() {
         onAirportClick={handleAirportClick}
       />
 
-      <nav className="map-navbar" aria-label="Main navigation">
-        <Link className="navbar-brand" to="/">
-          Flight Companion
-        </Link>
+      <div className="map-overlay">
+        <nav className="map-navbar" aria-label="Main navigation">
+          <Link className="navbar-brand" to="/">
+            Flight Companion
+          </Link>
 
-        <div className="navbar-actions">
-          <AirportSearchInput
-            label="From"
-            airports={airports}
-            selectedAirport={departureAirport}
-            onSelect={selectDeparture}
-            onClear={clearDeparture}
+          <div className="navbar-actions">
+            <AirportSearchInput
+              label="From"
+              airports={airports}
+              selectedAirport={departureAirport}
+              onSelect={selectDeparture}
+              onClear={clearDeparture}
+            />
+
+            <AirportSearchInput
+              label="To"
+              airports={airports}
+              selectedAirport={arrivalAirport}
+              onSelect={selectArrival}
+              onClear={clearArrival}
+            />
+          </div>
+
+          <div aria-hidden="true" />
+        </nav>
+
+        {departureAirport && arrivalAirport && selectedRoute && (
+          <RouteInfoPanel
+            departureAirport={departureAirport}
+            arrivalAirport={arrivalAirport}
+            route={selectedRoute}
           />
-
-          <AirportSearchInput
-            label="To"
-            airports={airports}
-            selectedAirport={arrivalAirport}
-            onSelect={selectArrival}
-            onClear={clearArrival}
-          />
-        </div>
-
-        <div aria-hidden="true" />
-      </nav>
+        )}
+      </div>
     </main>
   );
 }
