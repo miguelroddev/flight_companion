@@ -7,7 +7,13 @@
       "Bash(git rebase *)",
       "Bash(git push *)",
       "Bash(git filter-branch -f --env-filter ' *)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(docker build *)",
+      "Bash(docker rm *)",
+      "Bash(docker run *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP status: %{http_code}\\\\n\" http://localhost:8080/)",
+      "Bash(curl -s -o /dev/null -w \"SPA fallback route status: %{http_code}\\\\n\" http://localhost:8080/map)",
+      "Bash(docker rmi *)"
     ]
   }
 }
