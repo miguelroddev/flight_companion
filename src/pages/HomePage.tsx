@@ -33,7 +33,7 @@ function HomePage() {
 
             <h2>Connect with us</h2>
 
-            <p>Contribute to the best open-source flight tool</p>
+            <p>Contribute to the best open source flight tool</p>
 
             <ul>
               <li>
