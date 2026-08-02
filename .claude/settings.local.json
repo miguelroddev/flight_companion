@@ -16,7 +16,9 @@
       "Bash(docker rmi *)",
       "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" http://localhost:8081/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code} \" http://localhost:8081/)",
-      "Bash(xargs -P 30 -I{} curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8081/)"
+      "Bash(xargs -P 30 -I{} curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8081/)",
+      "Bash(ssh-keygen -t ed25519 -f ~/.ssh/flight_companion_deploy -N \"\" -C \"github-actions-deploy\")",
+      "Read(//c/Users/rodri/.ssh/**)"
     ]
   }
 }
