@@ -1,3 +1,5 @@
+https://flightcompanion.miguelrodrigues.dev/
+
 # ✈️ Flight Companion
 
 Flight Companion is a full-stack web application for exploring airports, flight routes, and possible connections on an interactive world map.
