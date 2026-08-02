@@ -22,5 +22,9 @@ jobs:
             docker build -t flight-companion . &&
             (docker stop flight-companion || true) &&
             (docker rm flight-companion || true) &&
-            docker run -d --name flight-companion -p 80:80 --restart unless-stopped flight-companion
+            docker run -d --name flight-companion \
+              -p 80:80 -p 443:443 \
+              -v /etc/letsencrypt:/etc/letsencrypt:ro \
+              --restart unless-stopped \
+              flight-companion
           '
