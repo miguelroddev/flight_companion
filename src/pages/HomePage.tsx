@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import worldmap from "../assets/world_map_home_page.jpg";
+import heroImage from "../assets/branding/hero.png";
 import "./HomePage.css";
 
 function HomePage() {
@@ -8,9 +8,9 @@ function HomePage() {
       <main>
         <section id="center">
           <img
-            src={worldmap}
-            alt="World map"
-            className="worldmap-image"
+            src={heroImage}
+            alt="Stylized world map with flight paths connecting several cities"
+            className="hero-image"
           />
 
           <div className="intro-text">
@@ -51,6 +51,24 @@ function HomePage() {
                   </svg>
 
                   GitHub
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="https://flightcompanion.miguelrodrigues.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg
+                    className="button-icon"
+                    role="presentation"
+                    aria-hidden="true"
+                  >
+                    <use href="/icons.svg#visit-site-icon" />
+                  </svg>
+
+                  Visit live site
                 </a>
               </li>
             </ul>

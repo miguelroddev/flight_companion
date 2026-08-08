@@ -7,6 +7,7 @@ import RouteInfoPanel from "../features/route/RouteInfoPanel";
 
 import { airports, type Airport } from "../data/airports";
 import { getRoute } from "../data/routes";
+import logo from "../assets/branding/logo.png";
 
 import "./MapPage.css";
 
@@ -79,6 +80,7 @@ function MapPage() {
       <div className="map-overlay">
         <nav className="map-navbar" aria-label="Main navigation">
           <Link className="navbar-brand" to="/">
+            <img src={logo} alt="" className="navbar-logo" />
             Flight Companion
           </Link>
 
