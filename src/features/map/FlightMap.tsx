@@ -27,6 +27,8 @@ type FlightMapProps = {
 // airport label callouts that render above a marker's point
 const FIT_BOUNDS_PADDING = { top: 100, bottom: 50, left: 20, right: 50 };
 
+const SELECTION_FIT_BOUNDS_PADDING = { top: 140, bottom: 120, left: 370, right: 80 };
+
 function computeWorldCopyOffsets(map: {
   getZoom: () => number;
   getContainer: () => { clientWidth: number };
@@ -135,7 +137,7 @@ function FlightMap({
         [Math.min(...unwrappedLngs), Math.min(...lats)],
         [Math.max(...unwrappedLngs), Math.max(...lats)],
       ],
-      { padding: FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
+      { padding: SELECTION_FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
     );
   }, [anchorAirport]);
 
