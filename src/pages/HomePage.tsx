@@ -53,24 +53,6 @@ function HomePage() {
                   GitHub
                 </a>
               </li>
-
-              <li>
-                <a
-                  href="https://flightcompanion.miguelrodrigues.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <svg
-                    className="button-icon"
-                    role="presentation"
-                    aria-hidden="true"
-                  >
-                    <use href="/icons.svg#visit-site-icon" />
-                  </svg>
-
-                  Visit live site
-                </a>
-              </li>
             </ul>
           </div>
         </section>
