@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import worldmap from "../assets/world_map_home_page.jpg";
+import heroImage from "../assets/branding/hero.png";
 import "./HomePage.css";
 
 function HomePage() {
@@ -8,9 +8,9 @@ function HomePage() {
       <main>
         <section id="center">
           <img
-            src={worldmap}
-            alt="World map"
-            className="worldmap-image"
+            src={heroImage}
+            alt="Stylized world map with flight paths connecting several cities"
+            className="hero-image"
           />
 
           <div className="intro-text">
@@ -33,7 +33,7 @@ function HomePage() {
 
             <h2>Connect with us</h2>
 
-            <p>Contribute to the best open-source flight tool</p>
+            <p>Contribute to the best open source flight tool</p>
 
             <ul>
               <li>

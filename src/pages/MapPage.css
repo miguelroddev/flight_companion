@@ -39,10 +39,20 @@
 }
 
 .navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
   color: white;
   text-decoration: none;
   font-size: 16px;
   font-weight: 600;
+}
+
+.navbar-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .navbar-actions {
