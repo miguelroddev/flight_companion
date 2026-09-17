@@ -24,3 +24,12 @@ dist-ssr
 *.sln
 *.sw?
 src/assets/generated_stuff/
+
+# Backend (Python)
+__pycache__
+*.pyc
+backend/.venv
+backend/venv
+
+# Local secrets
+.env
