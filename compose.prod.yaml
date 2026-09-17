@@ -1,0 +1,50 @@
+# Production stack for the EC2 box: Postgres, the FastAPI backend, and nginx
+# serving the built frontend and proxying /api to the backend.
+#
+# Unlike compose.yaml (development) nothing here mounts source, nothing reloads,
+# and neither the database nor the backend publishes a port to the host: they
+# are reachable only from inside this network, via nginx.
+#
+#   docker compose -f compose.prod.yaml up -d
+services:
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      # Lets the backend and the migration step wait for a database that is
+      # actually accepting connections, not just a container that has started.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

@@ -14,17 +14,19 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Rebuild and restart container on EC2
+      - name: Rebuild and restart the stack on EC2
         run: |
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} '
-            cd flight_companion &&
-            git pull &&
-            docker build -t flight-companion . &&
-            (docker stop flight-companion || true) &&
-            (docker rm flight-companion || true) &&
-            docker run -d --name flight-companion \
-              -p 80:80 -p 443:443 \
-              -v /etc/letsencrypt:/etc/letsencrypt:ro \
-              --restart unless-stopped \
-              flight-companion
+            set -euo pipefail
+            cd flight_companion
+            git pull
+            docker compose -f compose.prod.yaml build
+
+            # Bring the database up on its own first so migrations run against a
+            # schema nothing is serving from yet.
+            docker compose -f compose.prod.yaml up -d db
+            docker compose -f compose.prod.yaml run --rm backend alembic upgrade head
+
+            docker compose -f compose.prod.yaml up -d
+            docker image prune -f
           '

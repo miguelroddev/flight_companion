@@ -1,0 +1,15 @@
+# The frontend image only needs the source Vite compiles. Without this the
+# build context also carries node_modules, the git history and the ~23MB
+# scraped dataset, which makes every deploy upload slow.
+node_modules
+dist
+.git
+.github
+
+backend
+compose.yaml
+compose.prod.yaml
+
+.env
+*.log
+.DS_Store
