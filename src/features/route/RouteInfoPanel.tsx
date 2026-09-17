@@ -1,5 +1,5 @@
-import type { Airport } from "../../data/airports";
-import { DAYS_OF_WEEK, getRouteDistanceKm, type Route } from "../../data/routes";
+import { DAYS_OF_WEEK, type Airport, type Route } from "../../api/flights";
+import { haversineDistanceKm } from "../../data/geo";
 import { airlineIcons } from "./airlineIcons";
 
 import "./RouteInfoPanel.css";
@@ -20,7 +20,8 @@ const DAY_LABELS: Record<string, string> = {
   sat: "Sa",
 };
 
-function formatDuration(minutes: number): string {
+function formatDuration(minutes: number | null): string {
+  if (minutes === null) return "Duration unknown";
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}h ${String(remainingMinutes).padStart(2, "0")}m`;
@@ -41,7 +42,9 @@ function RouteInfoPanel({
   arrivalAirport,
   route,
 }: RouteInfoPanelProps) {
-  const distanceKm = Math.round(getRouteDistanceKm(route));
+  const distanceKm = Math.round(
+    haversineDistanceKm(departureAirport, arrivalAirport),
+  );
 
   return (
     <section className="route-info-panel" aria-label="Route details">
@@ -61,20 +64,20 @@ function RouteInfoPanel({
 
       <div className="route-info-services">
         {route.services.map((service) => (
-          <div className="airline-row" key={service.airline}>
-            {airlineIcons[service.airline] ? (
+          <div className="airline-row" key={service.airline.name}>
+            {airlineIcons[service.airline.name] ? (
               <img
                 className="airline-icon"
-                src={airlineIcons[service.airline]}
+                src={airlineIcons[service.airline.name]}
                 alt=""
                 aria-hidden="true"
               />
             ) : (
               <span className="airline-icon airline-icon--fallback" aria-hidden="true">
-                {airlineInitials(service.airline)}
+                {airlineInitials(service.airline.name)}
               </span>
             )}
-            <span className="airline-name">{service.airline}</span>
+            <span className="airline-name">{service.airline.name}</span>
             {service.operatingDays === null ? (
               <span className="airline-days-unavailable">Not available</span>
             ) : (

@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, String
+from sqlalchemy import ARRAY, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -27,12 +27,25 @@ class Airline(Base):
 
 
 class Route(Base):
+    """One airline's service between two airports, in one direction."""
+
     __tablename__ = "routes"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_airport_id",
+            "destination_airport_id",
+            "airline_id",
+            name="uq_routes_source_destination_airline",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source_airport_id: Mapped[int] = mapped_column(ForeignKey("airports.id"), index=True)
     destination_airport_id: Mapped[int] = mapped_column(ForeignKey("airports.id"), index=True)
     airline_id: Mapped[int] = mapped_column(ForeignKey("airlines.id"), index=True)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    # NULL means the schedule is unknown, as opposed to an empty list
+    operating_days: Mapped[list[str] | None] = mapped_column(ARRAY(String(3)))
 
     source_airport: Mapped["Airport"] = relationship(foreign_keys=[source_airport_id])
     destination_airport: Mapped["Airport"] = relationship(foreign_keys=[destination_airport_id])

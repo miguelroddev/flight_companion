@@ -9,5 +9,10 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+      // Inside Docker Compose the backend is reachable as "backend";
+      // running Vite directly on the host, it's on localhost
+      "/api": process.env.API_PROXY_TARGET ?? "http://localhost:8000",
+    },
   },
 });

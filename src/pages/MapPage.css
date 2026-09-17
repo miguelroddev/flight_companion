@@ -75,3 +75,14 @@
 .navbar-actions button:hover {
   background: rgb(255 255 255 / 8%);
 }
+.map-status {
+  margin: 0;
+  padding: 8px 12px;
+
+  border: 1px solid rgb(248 113 113 / 40%);
+  border-radius: 8px;
+
+  background: rgb(15 15 15 / 85%);
+  color: #fca5a5;
+  font-size: 13px;
+}

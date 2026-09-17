@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import FlightMap from "../features/map/FlightMap";
 import AirportSearchInput from "../features/airports/AirportSearchInput";
 import RouteInfoPanel from "../features/route/RouteInfoPanel";
 
-import { airports, type Airport } from "../data/airports";
-import { getRoute } from "../data/routes";
+import {
+  fetchAirports,
+  fetchRoute,
+  type Airport,
+  type Route,
+} from "../api/flights";
 import logo from "../assets/branding/logo.png";
 
 import "./MapPage.css";
@@ -14,6 +18,9 @@ import "./MapPage.css";
 export type SelectionRole = "departure" | "arrival";
 
 function MapPage() {
+  const [airports, setAirports] = useState<Airport[]>([]);
+  const [airportsError, setAirportsError] = useState(false);
+
   const [departureAirport, setDepartureAirport] =
     useState<Airport | null>(null);
 
@@ -63,14 +70,52 @@ function MapPage() {
     }
   }
 
+  // Tagged with the pair it was fetched for, so a slow response for a
+  // previous selection is never shown for the current one
+  const [routeResult, setRouteResult] = useState<{
+    key: string;
+    route: Route | null;
+  } | null>(null);
+
+  const departureIata = departureAirport?.iata;
+  const arrivalIata = arrivalAirport?.iata;
+  const routeKey =
+    departureIata && arrivalIata ? `${departureIata}-${arrivalIata}` : null;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAirports(controller.signal)
+      .then(setAirports)
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setAirportsError(true);
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!departureIata || !arrivalIata) return;
+
+    const key = `${departureIata}-${arrivalIata}`;
+    const controller = new AbortController();
+    fetchRoute(departureIata, arrivalIata, controller.signal)
+      .then((route) => setRouteResult({ key, route }))
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setRouteResult({ key, route: null });
+      });
+    return () => controller.abort();
+  }, [departureIata, arrivalIata]);
+
   const selectedRoute =
-    departureAirport && arrivalAirport
-      ? getRoute(departureAirport.id, arrivalAirport.id)
-      : undefined;
+    routeResult && routeResult.key === routeKey ? routeResult.route : null;
 
   return (
     <main className="map-page">
       <FlightMap
+        airports={airports}
         departureAirport={departureAirport}
         arrivalAirport={arrivalAirport}
         firstSelectedRole={firstSelectedRole}
@@ -104,6 +149,12 @@ function MapPage() {
 
           <div aria-hidden="true" />
         </nav>
+
+        {airportsError && (
+          <p className="map-status" role="alert">
+            Couldn't load airports. Please try again later.
+          </p>
+        )}
 
         {departureAirport && arrivalAirport && selectedRoute && (
           <RouteInfoPanel

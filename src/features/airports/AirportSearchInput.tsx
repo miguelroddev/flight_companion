@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Airport } from "../../data/airports";
+import type { Airport } from "../../api/flights";
 import "./AirportSearchInput.css";
 
 type AirportSearchInputProps = {
@@ -86,7 +86,7 @@ function AirportSearchInput({
       {isOpen && matchingAirports.length > 0 && (
         <ul className="airport-suggestions">
           {matchingAirports.map((airport) => (
-            <li key={airport.id}>
+            <li key={airport.iata}>
               <button
                 type="button"
                 onMouseDown={() => handleSelect(airport)}

@@ -8,8 +8,7 @@ import Map, {
   type MapRef,
 } from "react-map-gl/maplibre";
 
-import { airports, type Airport } from "../../data/airports";
-import { getConnectedAirports } from "../../data/routes";
+import { fetchConnectedAirports, type Airport } from "../../api/flights";
 import { greatCircleLine } from "./greatCircle";
 import type { SelectionRole } from "../../pages/MapPage";
 
@@ -17,6 +16,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./FlightMap.css";
 
 type FlightMapProps = {
+  airports: Airport[];
   departureAirport: Airport | null;
   arrivalAirport: Airport | null;
   firstSelectedRole: SelectionRole | null;
@@ -63,6 +63,7 @@ function unwrapLng(lng: number, referenceLng: number): number {
 }
 
 function FlightMap({
+  airports,
   departureAirport,
   arrivalAirport,
   firstSelectedRole,
@@ -83,18 +84,42 @@ function FlightMap({
       : (departureAirport ?? arrivalAirport);
   const otherAirport =
     anchorAirport === departureAirport ? arrivalAirport : departureAirport;
-  const connectedAirports = anchorAirport
-    ? getConnectedAirports(
-        anchorAirport.id,
-        anchorAirport === arrivalAirport ? "arrival" : "departure",
-      )
-    : [];
+  const anchorDirection =
+    anchorAirport === arrivalAirport ? "inbound" : "outbound";
+  const anchorIata = anchorAirport?.iata;
+  const anchorKey = anchorIata ? `${anchorIata}-${anchorDirection}` : null;
+
+  // Tagged with the anchor they were fetched for, so connections from a
+  // previous anchor are never drawn around the current one
+  const [connections, setConnections] = useState<{
+    key: string;
+    airports: Airport[];
+  } | null>(null);
+  const connectionsLoaded = connections !== null && connections.key === anchorKey;
+  const connectedAirports = connectionsLoaded ? connections.airports : [];
+
+  useEffect(() => {
+    if (!anchorIata) return;
+
+    const key = `${anchorIata}-${anchorDirection}`;
+    const controller = new AbortController();
+    fetchConnectedAirports(anchorIata, anchorDirection, controller.signal)
+      .then((airports) => setConnections({ key, airports }))
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setConnections({ key, airports: [] });
+      });
+    return () => controller.abort();
+  }, [anchorIata, anchorDirection]);
+
   const previewAirports = (noSelection ? airports : connectedAirports).filter(
     (airport) =>
-      airport.id !== departureAirport?.id && airport.id !== arrivalAirport?.id,
+      airport.iata !== departureAirport?.iata &&
+      airport.iata !== arrivalAirport?.iata,
   );
 
-  const confirmedTargetId = bothSelected ? otherAirport?.id : undefined;
+  const confirmedTargetId = bothSelected ? otherAirport?.iata : undefined;
 
   useEffect(() => {
     const CAMERA_DURATION = 1000;
@@ -102,6 +127,8 @@ function FlightMap({
     if (!map) return;
 
     if (!anchorAirport) {
+      if (airports.length === 0) return;
+
       const lngs = airports.map((airport) => airport.lng);
       const lats = airports.map((airport) => airport.lat);
       const west = Math.min(...lngs);
@@ -118,6 +145,10 @@ function FlightMap({
       );
       return;
     }
+
+    // Wait for this anchor's connections, otherwise the camera would
+    // first zoom onto the lone anchor and then jump out again
+    if (!connectionsLoaded) return;
 
     // Fit only the airports actually on screen rather
     // than every airport in the dataset
@@ -139,13 +170,13 @@ function FlightMap({
       ],
       { padding: SELECTION_FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
     );
-  }, [anchorAirport]);
+  }, [anchorAirport, airports, connectionsLoaded]);
 
   const networkGeoJson = anchorAirport
     ? {
         type: "FeatureCollection" as const,
         features: connectedAirports.map((airport) =>
-          lineFeature(anchorAirport, airport, { targetId: airport.id }),
+          lineFeature(anchorAirport, airport, { targetId: airport.iata }),
         ),
       }
     : null;
@@ -239,7 +270,7 @@ function FlightMap({
         {previewAirports.flatMap((airport) =>
           worldCopyOffsets.map((offset) => (
             <Marker
-              key={`${airport.id}-${offset}`}
+              key={`${airport.iata}-${offset}`}
               longitude={airport.lng + offset}
               latitude={airport.lat}
               anchor="bottom"
