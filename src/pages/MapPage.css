@@ -31,10 +31,10 @@
 
   padding: 10px 14px;
 
-  border: 1px solid rgb(255 255 255 / 12%);
+  border: 1px solid var(--panel-border);
   border-radius: 12px;
 
-  background: rgb(15 15 15 / 85%);
+  background: var(--panel-bg);
   backdrop-filter: blur(12px);
 }
 
@@ -43,7 +43,7 @@
   align-items: center;
   gap: 8px;
 
-  color: white;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 16px;
   font-weight: 600;
@@ -63,26 +63,27 @@
 .navbar-actions button {
   padding: 8px 12px;
 
-  border: 1px solid rgb(255 255 255 / 12%);
+  border: 1px solid var(--panel-border);
   border-radius: 8px;
 
-  color: white;
+  color: var(--text-primary);
   background: transparent;
   font: inherit;
   cursor: pointer;
 }
 
 .navbar-actions button:hover {
-  background: rgb(255 255 255 / 8%);
+  background: var(--input-bg);
 }
+
 .map-status {
   margin: 0;
   padding: 8px 12px;
 
-  border: 1px solid rgb(248 113 113 / 40%);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
   border-radius: 8px;
 
-  background: rgb(15 15 15 / 85%);
-  color: #fca5a5;
+  background: var(--panel-bg);
+  color: var(--danger);
   font-size: 13px;
 }

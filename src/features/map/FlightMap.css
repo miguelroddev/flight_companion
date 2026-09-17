@@ -1,73 +1,144 @@
 .flight-map {
+  position: relative;
   width: 100%;
   height: 100%;
 }
 
-.airport-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 11px;
-  height: 11px;
-
-  border: 2px solid rgb(255 255 255 / 85%);
-  border-radius: 50%;
-
-  box-shadow: 0 0 0 4px rgb(0 0 0 / 25%);
-  cursor: pointer;
-}
-
-.airport-marker:hover {
-  filter: brightness(1.25);
-}
-
-.airport-marker--departure {
-  background: #38bdf8;
-}
-
-.airport-marker--arrival {
-  background: #f87171;
-}
-
-.airport-marker--available {
-  width: 7px;
-  height: 7px;
-
-  background: rgb(255 255 255 / 55%);
-  border-color: rgb(255 255 255 / 60%);
-}
-
+/* A label-only marker: the pin under it is drawn in the circle layer so that a
+   selected airport keeps the colour of its traffic category. */
 .airport-marker-label {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
+  align-items: flex-start;
+  gap: 8px;
 
-  padding: 4px 10px;
+  padding: 4px 6px 4px 10px;
 
-  transform: translateX(-50%);
-
+  border: 1px solid var(--panel-border);
   border-radius: 8px;
 
-  background: rgb(15 15 15 / 85%);
-  color: white;
+  background: var(--panel-bg);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
 }
 
+.airport-marker-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.airport-marker-close {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+  padding: 0;
+
+  border: 0;
+  border-radius: 5px;
+
+  color: var(--text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+
+  /* the label itself is inert; the button is the one interactive part */
+  pointer-events: auto;
+}
+
+.airport-marker-close:hover {
+  color: var(--text-primary);
+  background: var(--input-bg);
+}
+
 .airport-marker-label small {
   max-width: 180px;
   overflow: hidden;
 
-  color: rgb(255 255 255 / 65%);
+  color: var(--text-secondary);
   font-size: 10px;
   font-weight: 500;
   text-overflow: ellipsis;
+}
+
+/* Clears the maplibre scale control, which also sits bottom-left. */
+.airport-legend {
+  position: absolute;
+  bottom: 44px;
+  left: 10px;
+
+  padding: 10px 12px;
+
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+
+  color: var(--text-primary);
+  font-size: 12px;
+
+  /* a legend is for reading, not clicking: let drags reach the map */
+  pointer-events: none;
+}
+
+.airport-legend-title {
+  margin: 0;
+
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.airport-legend-subtitle {
+  margin: 1px 0 8px;
+
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.airport-legend-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.airport-legend-tiers li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: var(--text-secondary);
+}
+
+/* fixed width so the labels line up despite the dots differing in size */
+.airport-legend-swatch {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+
+  width: 12px;
+}
+
+.airport-legend-dot {
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--pin-outline);
 }

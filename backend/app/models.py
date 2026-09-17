@@ -21,7 +21,7 @@ class Airline(Base):
     __tablename__ = "airlines"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    iata_code: Mapped[str | None] = mapped_column(String(2), unique=True, index=True)
+    iata_code: Mapped[str | None] = mapped_column(String(3), unique=True, index=True)
     icao_code: Mapped[str | None] = mapped_column(String(3), unique=True, index=True)
     name: Mapped[str] = mapped_column(String)
 

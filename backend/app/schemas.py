@@ -13,24 +13,26 @@ class ApiModel(BaseModel):
 
 
 class AirportOut(ApiModel):
+    # Deliberately lean: /airports returns every airport in the dataset, so each
+    # field costs ~3.7k copies. Only what the map and the search box render.
     iata: str
-    icao: str | None
     name: str
     city: str
-    country: str
     lat: float
     lng: float
+    # Outbound route rows (one per airline per destination); the map sizes and
+    # colours each pin by it.
+    route_count: int
 
     @classmethod
-    def from_model(cls, airport: Airport) -> "AirportOut":
+    def from_model(cls, airport: Airport, route_count: int) -> "AirportOut":
         return cls(
             iata=airport.iata_code,
-            icao=airport.icao_code,
             name=airport.name,
             city=airport.city,
-            country=airport.country,
             lat=airport.latitude,
             lng=airport.longitude,
+            route_count=route_count,
         )
 
 

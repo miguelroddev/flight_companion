@@ -1,7 +1,8 @@
+from collections.abc import Iterable
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -13,6 +14,22 @@ router = APIRouter(prefix="/api")
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+def outbound_route_counts(
+    db: Session, airport_ids: Iterable[int] | None = None
+) -> dict[int, int]:
+    """Outbound route rows per airport id, in a single grouped query.
+
+    Pass no ids to count every airport, which is cheaper than an IN clause
+    listing the whole dataset.
+    """
+    statement = select(Route.source_airport_id, func.count()).group_by(
+        Route.source_airport_id
+    )
+    if airport_ids is not None:
+        statement = statement.where(Route.source_airport_id.in_(airport_ids))
+    return dict(db.execute(statement).all())
+
+
 def get_airport_or_404(db: Session, iata: str) -> Airport:
     airport = db.scalar(select(Airport).where(Airport.iata_code == iata.upper()))
     if airport is None:
@@ -22,13 +39,19 @@ def get_airport_or_404(db: Session, iata: str) -> Airport:
 
 @router.get("/airports", response_model=list[AirportOut])
 def list_airports(db: DbSession):
-    airports = db.scalars(select(Airport).order_by(Airport.iata_code))
-    return [AirportOut.from_model(airport) for airport in airports]
+    airports = db.scalars(select(Airport).order_by(Airport.iata_code)).all()
+    counts = outbound_route_counts(db)
+    return [
+        AirportOut.from_model(airport, counts.get(airport.id, 0))
+        for airport in airports
+    ]
 
 
 @router.get("/airports/{iata}", response_model=AirportOut)
 def get_airport(iata: str, db: DbSession):
-    return AirportOut.from_model(get_airport_or_404(db, iata))
+    airport = get_airport_or_404(db, iata)
+    counts = outbound_route_counts(db, [airport.id])
+    return AirportOut.from_model(airport, counts.get(airport.id, 0))
 
 
 @router.get("/airports/{iata}/routes", response_model=list[AirportOut])
@@ -51,8 +74,9 @@ def list_connected_airports(
         .where(filter_column == airport.id)
         .distinct()
         .order_by(Airport.iata_code)
-    )
-    return [AirportOut.from_model(a) for a in connected]
+    ).all()
+    counts = outbound_route_counts(db, [a.id for a in connected])
+    return [AirportOut.from_model(a, counts.get(a.id, 0)) for a in connected]
 
 
 @router.get("/routes", response_model=RouteOut)
@@ -82,9 +106,12 @@ def get_route(
         )
 
     durations = [row.duration_minutes for row in rows if row.duration_minutes is not None]
+    counts = outbound_route_counts(db, [departure_airport.id, arrival_airport.id])
     return RouteOut(
-        departure=AirportOut.from_model(departure_airport),
-        arrival=AirportOut.from_model(arrival_airport),
+        departure=AirportOut.from_model(
+            departure_airport, counts.get(departure_airport.id, 0)
+        ),
+        arrival=AirportOut.from_model(arrival_airport, counts.get(arrival_airport.id, 0)),
         duration_minutes=min(durations) if durations else None,
         services=[
             AirlineServiceOut(

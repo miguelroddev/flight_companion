@@ -120,6 +120,9 @@ function MapPage() {
         arrivalAirport={arrivalAirport}
         firstSelectedRole={firstSelectedRole}
         onAirportClick={handleAirportClick}
+        onAirportDeselect={(role) =>
+          role === "departure" ? clearDeparture() : clearArrival()
+        }
       />
 
       <div className="map-overlay">

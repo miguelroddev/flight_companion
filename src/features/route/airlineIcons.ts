@@ -8,10 +8,10 @@ import tapAirPortugal from "../../assets/airline_icons/tap.jpg";
 
 export const airlineIcons: Record<string, string> = {
   "Air China": airChina,
-  "All Nippon Airways": allNipponAirways,
+  "ANA": allNipponAirways,
   "British Airways": britishAirways,
-  "China Southern": chinaSouthern,
+  "China Southern Airlines": chinaSouthern,
   "Lufthansa": lufthansa,
   "Qantas": qantas,
-  "TAP Air Portugal": tapAirPortugal,
+  "TAP Portugal": tapAirPortugal,
 };

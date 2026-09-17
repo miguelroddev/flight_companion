@@ -31,5 +31,8 @@ __pycache__
 backend/.venv
 backend/venv
 
+# Downloaded route data (fetched by backend/app/import_routes.py, not ours to redistribute)
+backend/data/
+
 # Local secrets
 .env

@@ -7,12 +7,12 @@
   max-width: calc(100vw - 32px);
   padding: 12px 14px;
 
-  border: 1px solid rgb(255 255 255 / 12%);
+  border: 1px solid var(--panel-border);
   border-radius: 12px;
 
-  background: rgb(15 15 15 / 85%);
+  background: var(--panel-bg);
   backdrop-filter: blur(12px);
-  color: white;
+  color: var(--text-primary);
 }
 
 .route-info-header {
@@ -27,11 +27,11 @@
 }
 
 .route-info-arrow {
-  color: rgb(255 255 255 / 55%);
+  color: var(--text-muted);
 }
 
 .route-info-meta {
-  color: rgb(255 255 255 / 65%);
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
@@ -41,7 +41,7 @@
   gap: 8px;
 
   padding-top: 8px;
-  border-top: 1px solid rgb(255 255 255 / 10%);
+  border-top: 1px solid var(--panel-border);
 }
 
 .airline-row {
@@ -61,15 +61,15 @@
 
   border-radius: 50%;
 
-  background: white;
+  background: var(--logo-backdrop);
   object-fit: contain;
   object-position: center;
   padding: 2px;
 }
 
 .airline-icon--fallback {
-  background: rgb(255 255 255 / 10%);
-  color: white;
+  background: var(--input-bg);
+  color: var(--text-secondary);
   font-size: 9px;
   font-weight: 700;
 }
@@ -78,7 +78,7 @@
   overflow: hidden;
   flex: 1 1 auto;
 
-  color: rgb(255 255 255 / 85%);
+  color: var(--text-primary);
   font-size: 11px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -93,7 +93,7 @@
 .airline-days-unavailable {
   flex-shrink: 0;
 
-  color: rgb(255 255 255 / 40%);
+  color: var(--text-muted);
   font-size: 10px;
   font-style: italic;
 }
@@ -108,13 +108,13 @@
 
   border-radius: 4px;
 
-  background: rgb(255 255 255 / 6%);
-  color: rgb(255 255 255 / 35%);
+  background: var(--input-bg);
+  color: var(--text-muted);
   font-size: 8px;
   font-weight: 600;
 }
 
 .day-chip--active {
-  background: rgb(250 204 21 / 20%);
-  color: #facc15;
+  background: color-mix(in srgb, var(--route-selected) 20%, transparent);
+  color: var(--route-selected-ink);
 }

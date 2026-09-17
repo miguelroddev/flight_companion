@@ -1,0 +1,43 @@
+/* Design tokens for the map experience, built around the pale CARTO Positron
+ * basemap (land #fafaf8, water #d4dadc).
+ *
+ * The map half of this palette is duplicated in src/features/map/mapTheme.ts
+ * because maplibre paint properties are evaluated in JS and cannot read CSS
+ * custom properties. Change a map colour in both places.
+ *
+ * The basemap is Positron's own, except for the water layer, which is
+ * overridden to blue in mapTheme.ts to get white land over blue ocean.
+ */
+:root {
+  /* Airport pins, by number of departing routes: a categorical hue ramp, so
+     size and the dark ring carry the hierarchy rather than contrast. */
+  --pin-under-8: #e03131;
+  --pin-8-24: #eab308;
+  --pin-25-99: #0891b2;
+  --pin-100-plus: #1e40af;
+  --pin-outline: #000000;
+  --pin-hover: #ff0000;
+
+  /* Route lines */
+  --route-network: #46596b;
+  --route-selected: #1b3480;
+  --route-selected-ink: #16296b;
+  --route-casing: rgb(255 255 255 / 85%);
+
+  /* Interface */
+  --panel-bg: rgb(255 255 255 / 94%);
+  --panel-border: rgb(15 35 50 / 14%);
+  --input-bg: #eef2f4;
+  --input-bg-hover: #e4eaed;
+  --input-border: #c3ced5;
+  --text-primary: #0f2330;
+  --text-secondary: #40586a;
+  --text-muted: #6b8296;
+
+  /* Airline logos are supplied on transparent backgrounds and need a light
+     backing regardless of the surrounding panel. */
+  --logo-backdrop: #ffffff;
+
+  /* error text, kept out of the pin palette */
+  --danger: #c92a2a;
+}

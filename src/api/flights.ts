@@ -1,11 +1,11 @@
 export type Airport = {
   iata: string;
-  icao: string | null;
   name: string;
   city: string;
-  country: string;
   lat: number;
   lng: number;
+  // Outbound route rows: one per airline per destination.
+  routeCount: number;
 };
 
 export type Airline = {
