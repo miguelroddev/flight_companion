@@ -19,7 +19,14 @@ jobs:
           ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} '
             set -euo pipefail
             cd flight_companion
-            git pull
+
+            # Explicit branch: a bare "git pull" takes whatever branch the box
+            # happens to be checked out on, which silently deploys stale code.
+            # --ff-only fails loudly rather than merging if the box has drifted.
+            git fetch origin
+            git checkout main
+            git pull --ff-only origin main
+
             docker compose -f compose.prod.yaml build
 
             # Bring the database up on its own first so migrations run against a

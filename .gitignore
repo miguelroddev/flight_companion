@@ -34,5 +34,8 @@ backend/venv
 # Downloaded route data (fetched by backend/app/import_routes.py, not ours to redistribute)
 backend/data/
 
+# Database dumps produced by scripts/push-data.ps1
+*.sql
+
 # Local secrets
 .env
