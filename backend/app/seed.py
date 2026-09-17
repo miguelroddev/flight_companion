@@ -26,6 +26,7 @@ AIRPORTS = [
     {"iata": "SYD", "icao": "YSSY", "name": "Sydney Kingsford Smith Airport", "city": "Sydney", "country": "Australia", "lat": -33.9399, "lng": 151.1753},
     {"iata": "HND", "icao": "RJTT", "name": "Tokyo Haneda Airport", "city": "Tokyo", "country": "Japan", "lat": 35.5494, "lng": 139.7798},
     {"iata": "WAW", "icao": "EPWA", "name": "Warsaw Chopin Airport", "city": "Warsaw", "country": "Poland", "lat": 52.1657, "lng": 20.9671},
+    {"iata": "ALA", "icao": "UAAA", "name": "Almaty International Airport", "city": "Almaty", "country": "Kazakhstan", "lat": 43.3521, "lng": 77.0405},
 ]
 
 # Names must match the keys in src/features/route/airlineIcons.ts
@@ -37,6 +38,7 @@ AIRLINES = [
     {"iata": "QF", "icao": "QFA", "name": "Qantas"},
     {"iata": "CZ", "icao": "CSN", "name": "China Southern"},
     {"iata": "NH", "icao": "ANA", "name": "All Nippon Airways"},
+    {"iata": "KC", "icao": "KZR", "name": "Air Astana"},
 ]
 
 DAILY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
@@ -69,6 +71,8 @@ ROUTES = [
     ("FRA", "HND", "LH", 705, ["mon", "tue", "thu", "fri", "sun"]),
     ("MUC", "WAW", "LH", 110, WEEKDAYS),
     ("WAW", "MUC", "LH", 115, WEEKDAYS),
+    ("WAW", "ALA", "KC", 385, ["mon", "wed", "fri", "sun"]),
+    ("ALA", "WAW", "KC", 370, ["mon", "wed", "fri", "sun"]),
 ]
 
 
