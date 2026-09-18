@@ -104,3 +104,83 @@
   color: var(--danger);
   font-size: 13px;
 }
+
+/* Phones (MOBILE_MEDIA_QUERY in src/styles/breakpoints.ts): the header stacks
+   above the map instead of floating over it. The overlay stops generating a
+   box, so its children join the page's column and can be ordered around the
+   map: brand, From, To, filters, then the map filling what is left. The
+   route panel becomes a card over the bottom of the map. */
+@media (max-width: 760px) {
+  .map-page {
+    display: flex;
+    flex-direction: column;
+
+    background: var(--input-bg);
+  }
+
+  .map-overlay {
+    display: contents;
+  }
+
+  .map-navbar {
+    order: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    width: auto;
+    margin: 8px 8px 0;
+    padding: 10px;
+  }
+
+  /* The spacer that centres the search boxes on desktop. */
+  .map-navbar > [aria-hidden="true"] {
+    display: none;
+  }
+
+  .navbar-actions {
+    flex-direction: column;
+  }
+
+  .navbar-actions .airport-search {
+    width: 100%;
+  }
+
+  .map-status {
+    order: 3;
+    margin: 8px 8px 0;
+  }
+
+  /* Isolated so maplibre's own controls, which carry a z-index, cannot rise
+     above the route card laid over the map. */
+  .flight-map {
+    order: 4;
+    flex: 1 1 auto;
+
+    height: auto;
+    min-height: 0;
+    margin-top: 8px;
+
+    isolation: isolate;
+  }
+
+  /* iOS zooms the whole page into any focused input set below 16px. */
+  .airport-search input,
+  .airline-picker-search {
+    font-size: 16px;
+  }
+
+  .map-overlay > .route-info-panel {
+    position: fixed;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    z-index: 1;
+
+    width: auto;
+    max-width: none;
+    max-height: 40dvh;
+  }
+}

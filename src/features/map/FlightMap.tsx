@@ -20,6 +20,7 @@ import {
 import { greatCircleLine } from "./greatCircle";
 import { applyWaterColour, PIN, PIN_TIERS, ROUTE } from "./mapTheme";
 import type { SelectionRole } from "../../pages/MapPage";
+import { isMobileLayout } from "../../styles/breakpoints";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./FlightMap.css";
@@ -50,6 +51,30 @@ const FIT_BOUNDS_PADDING = { top: 190, bottom: 50, left: 20, right: 50 };
 // ~155px: 155 + 36, plus breathing room.
 
 const SELECTION_FIT_BOUNDS_PADDING = { top: 230, bottom: 120, left: 370, right: 80 };
+
+// The paddings above are for the desktop layout, where the header floats over
+// the top of the map and the route panel over its left. On phones the header
+// sits above the map instead, and the panel is a card over the bottom of it,
+// up to 40% of the screen tall (MapPage.css).
+function fitPadding(
+  map: MapRef,
+  kind: "world" | "selection",
+  panelShown: boolean,
+) {
+  if (!isMobileLayout()) {
+    return kind === "world" ? FIT_BOUNDS_PADDING : SELECTION_FIT_BOUNDS_PADDING;
+  }
+  if (kind === "world") return { top: 24, bottom: 24, left: 16, right: 16 };
+
+  // A selected airport's label stands ~36px above its pin. The bottom clears
+  // the panel, capped so the two paddings never outgrow a short map, which
+  // maplibre would refuse to fit into.
+  const mapHeight = map.getContainer().clientHeight;
+  const bottom = panelShown
+    ? Math.min(Math.round(window.innerHeight * 0.4) + 16, Math.round(mapHeight * 0.55))
+    : 32;
+  return { top: 48, bottom, left: 24, right: 24 };
+}
 
 // Every airport is drawn in one GPU circle layer rather than a DOM marker each:
 // the dataset is a few thousand airports and maplibre repositions every DOM
@@ -131,6 +156,8 @@ function FlightMap({
   // reason: as React state, every hover would re-render the map and rebuild
   // the route lines.
   const hoverLabel = useRef<MaplibreMarker | null>(null);
+  // Collapsed to a button on phones, where it would cover too much map.
+  const [legendOpen, setLegendOpen] = useState(() => !isMobileLayout());
 
   useEffect(
     () => () => {
@@ -402,7 +429,7 @@ function FlightMap({
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ],
-      { padding: SELECTION_FIT_BOUNDS_PADDING, duration: 1000 },
+      { padding: fitPadding(map, "selection", true), duration: 1000 },
     );
   }, [itineraryPath, itineraryOptions]);
 
@@ -434,7 +461,7 @@ function FlightMap({
           [west, south],
           [east, north],
         ],
-        { padding: FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
+        { padding: fitPadding(map, "world", false), duration: CAMERA_DURATION },
       );
       return;
     }
@@ -463,7 +490,7 @@ function FlightMap({
         [Math.min(...unwrappedLngs), Math.min(...lats)],
         [Math.max(...unwrappedLngs), Math.max(...lats)],
       ],
-      { padding: SELECTION_FIT_BOUNDS_PADDING, duration: CAMERA_DURATION },
+      { padding: fitPadding(map, "selection", bothSelected), duration: CAMERA_DURATION },
     );
   }, [anchorAirport, airports, connectionsLoaded]);
 
@@ -875,28 +902,51 @@ function FlightMap({
         )}
       </Map>
 
-      <div className="airport-legend">
-        <h2 className="airport-legend-title">Airport Legend</h2>
-        <p className="airport-legend-subtitle">Routes departing</p>
+      {!legendOpen && (
+        <button
+          type="button"
+          className="airport-legend-toggle"
+          aria-label="Show airport legend"
+          onClick={() => setLegendOpen(true)}
+        >
+          +
+        </button>
+      )}
 
-        <ul className="airport-legend-tiers">
-          {[...PIN_TIERS].reverse().map((tier) => (
-            <li key={tier.minRoutes}>
-              <span className="airport-legend-swatch">
-                <span
-                  className="airport-legend-dot"
-                  style={{
-                    width: PIN.radius * tier.scale * 2,
-                    height: PIN.radius * tier.scale * 2,
-                    background: tier.color,
-                  }}
-                />
-              </span>
-              {tier.label}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {legendOpen && (
+        <div className="airport-legend">
+          <div className="airport-legend-header">
+            <h2 className="airport-legend-title">Airport Legend</h2>
+            <button
+              type="button"
+              className="airport-legend-close"
+              aria-label="Hide airport legend"
+              onClick={() => setLegendOpen(false)}
+            >
+              ×
+            </button>
+          </div>
+          <p className="airport-legend-subtitle">Routes departing</p>
+
+          <ul className="airport-legend-tiers">
+            {[...PIN_TIERS].reverse().map((tier) => (
+              <li key={tier.minRoutes}>
+                <span className="airport-legend-swatch">
+                  <span
+                    className="airport-legend-dot"
+                    style={{
+                      width: PIN.radius * tier.scale * 2,
+                      height: PIN.radius * tier.scale * 2,
+                      background: tier.color,
+                    }}
+                  />
+                </span>
+                {tier.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

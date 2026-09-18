@@ -159,3 +159,75 @@
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--pin-outline);
 }
+
+.airport-legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* The legend is inert so drags reach the map; its buttons opt back in. */
+.airport-legend-close,
+.airport-legend-toggle {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.airport-legend-close {
+  display: grid;
+  place-items: center;
+
+  width: 18px;
+  height: 18px;
+  margin: -2px -4px -2px 0;
+  padding: 0;
+
+  border: 0;
+  border-radius: 4px;
+
+  color: var(--text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.airport-legend-close:hover {
+  color: var(--text-primary);
+  background: var(--input-bg);
+}
+
+/* The collapsed legend: a round button where the legend's corner sits. */
+.airport-legend-toggle {
+  position: absolute;
+  bottom: 44px;
+  left: 10px;
+
+  display: grid;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+  padding: 0;
+
+  border: 1px solid var(--panel-border);
+  border-radius: 50%;
+
+  color: var(--text-primary);
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.airport-legend-toggle:hover {
+  background: var(--input-bg);
+}
+
+.airport-legend-close:focus-visible,
+.airport-legend-toggle:focus-visible {
+  outline: 2px solid var(--route-selected);
+  outline-offset: 2px;
+}

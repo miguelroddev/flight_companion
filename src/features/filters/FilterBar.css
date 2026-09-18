@@ -529,3 +529,51 @@
 .filter-toggle[aria-checked="true"] .filter-toggle-track::after {
   transform: translateX(11px);
 }
+
+/* Phones (MOBILE_MEDIA_QUERY in src/styles/breakpoints.ts): one row that
+   scrolls sideways, and dropdowns that open as sheets from the bottom of the
+   screen, since a scrolling row would clip anything hanging below it. */
+@media (max-width: 760px) {
+  .filter-bar {
+    order: 2;
+    align-self: stretch;
+    flex-wrap: nowrap;
+
+    margin: 8px 8px 0;
+    overflow-x: auto;
+
+    /* A backdrop filter would make the bar the containing block of the fixed
+       sheets below, trapping them inside its scrolling box. */
+    backdrop-filter: none;
+    background: var(--logo-backdrop);
+    scrollbar-width: none;
+  }
+
+  .filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-bar > * {
+    flex-shrink: 0;
+  }
+
+  .filter-dropdown-panel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    max-height: 70dvh;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgb(15 35 50 / 18%);
+  }
+
+  .airline-picker,
+  .range-filter {
+    width: auto;
+  }
+}
