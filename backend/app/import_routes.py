@@ -7,11 +7,13 @@ Generate that file first with:
 Run with: docker compose exec backend python -m app.import_routes
 """
 import json
+import math
 import sys
 from pathlib import Path
 
 from sqlalchemy import insert, select, text
 
+from app.alliances import assign_alliances
 from app.database import SessionLocal
 from app.models import Airline, Airport, Route
 
@@ -26,6 +28,16 @@ def parse_coordinate(value: object) -> float | None:
         return float(str(value).split(",")[0])
     except ValueError:
         return None
+
+
+def great_circle_km(source: dict, destination: dict) -> int:
+    """Haversine distance between two collected airports. Matches the SQL
+    backfill in migration 0005, so imported and migrated rows agree."""
+    lat1, lat2 = math.radians(source["latitude"]), math.radians(destination["latitude"])
+    half_dlat = (lat2 - lat1) / 2
+    half_dlng = math.radians(destination["longitude"] - source["longitude"]) / 2
+    h = math.sin(half_dlat) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(half_dlng) ** 2
+    return round(2 * 6371 * math.asin(min(1.0, math.sqrt(h))))
 
 
 def collect_airports(raw: dict) -> dict[str, dict]:
@@ -137,10 +149,14 @@ def import_routes() -> None:
                     "destination_airport_id": airport_ids[destination],
                     "airline_id": airline_ids[code],
                     "duration_minutes": duration,
+                    "distance_km": great_circle_km(airports[source], airports[destination]),
                 }
                 for (source, destination, code), duration in routes.items()
             ],
         )
+
+        # Truncating airlines wiped the tags, so they are re-applied every import.
+        alliance_problems = assign_alliances(db)
 
         db.commit()
     finally:
@@ -154,6 +170,8 @@ def import_routes() -> None:
         f"  Skipped {len(raw) - len(airports)} airports without usable coordinates "
         f"and {len(airports) - len(airport_rows)} with no routes in either direction."
     )
+    for problem in alliance_problems:
+        print(f"  Alliance: {problem}")
     if shared_icao:
         print(f"  Cleared {shared_icao} ICAO codes already claimed by another airport.")
 

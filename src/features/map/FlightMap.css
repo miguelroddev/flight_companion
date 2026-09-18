@@ -4,41 +4,61 @@
   height: 100%;
 }
 
-/* A label-only marker: the pin under it is drawn in the circle layer so that a
-   selected airport keeps the colour of its traffic category. */
-.airport-marker-label {
+/* The hover tag: one line, the airport name and then its code in a navy
+   chip, the same navy as the filter pills and the selected route. */
+.airport-hover-label {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
 
-  padding: 4px 6px 4px 10px;
+  padding: 3px 4px 3px 8px;
 
   border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  border-radius: 6px;
 
   background: var(--panel-bg);
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
   white-space: nowrap;
   pointer-events: none;
 }
 
-.airport-marker-text {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
+.airport-hover-label span {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.airport-hover-label strong {
+  flex: none;
+
+  padding: 2px 5px;
+
+  border-radius: 4px;
+
+  color: #ffffff;
+  background: var(--route-selected);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+/* A selected airport gets the hover tag plus this close button. The pin
+   itself is drawn in the circle layer, so it keeps its traffic category
+   colour. */
 .airport-marker-close {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: center;
 
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  /* Pulled into the padding, so the tag is no taller than the hover one. */
+  margin: -2px 0 -2px 2px;
   padding: 0;
 
   border: 0;
@@ -47,7 +67,7 @@
   color: var(--text-muted);
   background: transparent;
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
 
@@ -58,16 +78,6 @@
 .airport-marker-close:hover {
   color: var(--text-primary);
   background: var(--input-bg);
-}
-
-.airport-marker-label small {
-  max-width: 180px;
-  overflow: hidden;
-
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 500;
-  text-overflow: ellipsis;
 }
 
 /* Clears the maplibre scale control, which also sits bottom-left. */

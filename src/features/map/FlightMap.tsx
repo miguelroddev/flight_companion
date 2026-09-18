@@ -5,11 +5,18 @@ import Map, {
   ScaleControl,
   Source,
   Layer,
+  type MapGeoJSONFeature,
   type MapLayerMouseEvent,
   type MapRef,
 } from "react-map-gl/maplibre";
+import { Marker as MaplibreMarker } from "maplibre-gl";
 
-import { fetchConnectedAirports, type Airport } from "../../api/flights";
+import {
+  fetchConnectedAirports,
+  fetchNetwork,
+  type Airport,
+  type RouteFilters,
+} from "../../api/flights";
 import { greatCircleLine } from "./greatCircle";
 import { applyWaterColour, PIN, PIN_TIERS, ROUTE } from "./mapTheme";
 import type { SelectionRole } from "../../pages/MapPage";
@@ -22,15 +29,23 @@ type FlightMapProps = {
   departureAirport: Airport | null;
   arrivalAirport: Airport | null;
   firstSelectedRole: SelectionRole | null;
+  filters: RouteFilters;
+  // Keep the airports the selection has no direct route to on the map, faded.
+  showIndirect: boolean;
   onAirportClick: (airport: Airport) => void;
   onAirportDeselect: (role: SelectionRole) => void;
 };
 
-// top is taller than the rest to clear the floating navbar, plus the
-// airport label callouts that render above a marker's point
-const FIT_BOUNDS_PADDING = { top: 100, bottom: 50, left: 20, right: 50 };
+// The floating header (16px margin + 66px navbar + 12px gap + 46px filter bar)
+// ends ~140px down, so every fit keeps its pins clear of that first.
+// World view: only a pin and its one-line hover tag (~30px) have to fit below.
+const FIT_BOUNDS_PADDING = { top: 190, bottom: 50, left: 20, right: 50 };
 
-const SELECTION_FIT_BOUNDS_PADDING = { top: 140, bottom: 120, left: 370, right: 80 };
+// Selection: a selected airport carries its label ~36px above the pin, and it
+// may well be the northernmost point. An active filter grows the header to
+// ~155px: 155 + 36, plus breathing room.
+
+const SELECTION_FIT_BOUNDS_PADDING = { top: 230, bottom: 120, left: 370, right: 80 };
 
 // Every airport is drawn in one GPU circle layer rather than a DOM marker each:
 // the dataset is a few thousand airports and maplibre repositions every DOM
@@ -38,7 +53,11 @@ const SELECTION_FIT_BOUNDS_PADDING = { top: 140, bottom: 120, left: 370, right: 
 // the colour of their traffic category instead of a selection colour.
 const PIN_SOURCE_ID = "airport-pins";
 const PIN_LAYER_ID = "airport-pins";
-const PIN_LAYER_IDS = [PIN_LAYER_ID];
+// Transparent, full-size circles drawn over the visible pins: every airport is
+// as easy to hit as the largest tier, however small it looks. Only this layer
+// is interactive.
+const PIN_HIT_LAYER_ID = "airport-pins-hit";
+const PIN_HIT_LAYER_IDS = [PIN_HIT_LAYER_ID];
 
 const NO_AIRPORTS: Airport[] = [];
 
@@ -70,6 +89,15 @@ function lineFeature(
   };
 }
 
+// Feature ids must be stable per airport, not per position in some list, or a
+// hover could survive a change of pin set and light up a different airport. An
+// IATA code read as base 36 is unique and needs no lookup table, so a selected
+// airport outside the current (filtered) list still gets one. Offset by 1
+// because maplibre treats a missing id and 0 alike.
+function pinFeatureId(iata: string): number {
+  return parseInt(iata, 36) + 1;
+}
+
 function unwrapLng(lng: number, referenceLng: number): number {
   const delta = ((((lng - referenceLng) % 360) + 540) % 360) - 180;
   return referenceLng + delta;
@@ -80,6 +108,8 @@ function FlightMap({
   departureAirport,
   arrivalAirport,
   firstSelectedRole,
+  filters,
+  showIndirect,
   onAirportClick,
   onAirportDeselect,
 }: FlightMapProps) {
@@ -91,6 +121,17 @@ function FlightMap({
   // state: re-rendering to change circle-color would re-evaluate the paint
   // expression for every pin in the layer and visibly trail the cursor.
   const hoveredFeatureId = useRef<number | null>(null);
+  // The one-line name tag shown over a hovered pin. Imperative for the same
+  // reason: as React state, every hover would re-render the map and rebuild
+  // the route lines.
+  const hoverLabel = useRef<MaplibreMarker | null>(null);
+
+  useEffect(
+    () => () => {
+      hoverLabel.current?.remove();
+    },
+    [],
+  );
 
   const bothSelected = Boolean(departureAirport && arrivalAirport);
   const noSelection = !departureAirport && !arrivalAirport;
@@ -108,12 +149,17 @@ function FlightMap({
   const anchorKey = anchorIata ? `${anchorIata}-${anchorDirection}` : null;
 
   // Tagged with the anchor they were fetched for, so connections from a
-  // previous anchor are never drawn around the current one
+  // previous anchor are never drawn around the current one. The filters are
+  // part of the tag: changing them makes the old network stale too.
   const [connections, setConnections] = useState<{
     key: string;
+    filters: RouteFilters;
     airports: Airport[];
   } | null>(null);
-  const connectionsLoaded = connections !== null && connections.key === anchorKey;
+  const connectionsLoaded =
+    connections !== null &&
+    connections.key === anchorKey &&
+    connections.filters === filters;
   const connectedAirports = connectionsLoaded ? connections.airports : NO_AIRPORTS;
 
   useEffect(() => {
@@ -121,23 +167,80 @@ function FlightMap({
 
     const key = `${anchorIata}-${anchorDirection}`;
     const controller = new AbortController();
-    fetchConnectedAirports(anchorIata, anchorDirection, controller.signal)
-      .then((airports) => setConnections({ key, airports }))
+    fetchConnectedAirports(anchorIata, anchorDirection, filters, controller.signal)
+      .then((airports) => setConnections({ key, filters, airports }))
       .catch((error) => {
         if (controller.signal.aborted) return;
         console.error(error);
-        setConnections({ key, airports: [] });
+        setConnections({ key, filters, airports: [] });
       });
     return () => controller.abort();
-  }, [anchorIata, anchorDirection]);
+  }, [anchorIata, anchorDirection, filters]);
+
+  // Every route of the airlines picked in the filter. Once an airport is
+  // selected it stays, dimmed further, as context behind that airport's own
+  // routes. Tagged with the filters it was fetched for.
+  const [airlineNetwork, setAirlineNetwork] = useState<{
+    filters: RouteFilters;
+    pairs: [string, string][];
+  } | null>(null);
+
+  useEffect(() => {
+    if (filters.airlines.length === 0) return;
+
+    const controller = new AbortController();
+    fetchNetwork(filters, controller.signal)
+      .then((pairs) => setAirlineNetwork({ filters, pairs }))
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setAirlineNetwork({ filters, pairs: [] });
+      });
+    return () => controller.abort();
+  }, [filters]);
+
+  const airlineFilterOn = filters.airlines.length > 0;
+  // Around a selection, airports it has no direct route to stay on the map
+  // (faded) when asked to, and always under an airline filter, where they
+  // are part of the airline network being shown.
+  const keepUnconnected = airlineFilterOn || showIndirect;
+
+  const airlineNetworkGeoJson = useMemo(() => {
+    if (!airlineFilterOn || airlineNetwork?.filters !== filters) return null;
+
+    const airportByIata = Object.fromEntries(
+      airports.map((airport) => [airport.iata, airport]),
+    ) as Record<string, Airport>;
+
+    const features = [];
+    for (const [fromIata, toIata] of airlineNetwork.pairs) {
+      const from = airportByIata[fromIata];
+      const to = airportByIata[toIata];
+      // Absent only while the airport list for these filters is still loading.
+      if (!from || !to) continue;
+      features.push({
+        type: "Feature" as const,
+        properties: {},
+        geometry: {
+          type: "LineString" as const,
+          // Half the usual detail: a big carrier flies a thousand-odd pairs,
+          // and this is only ever seen zoomed out.
+          coordinates: greatCircleLine(from, to, 32),
+        },
+      });
+    }
+    return { type: "FeatureCollection" as const, features };
+  }, [airlineFilterOn, filters, airlineNetwork, airports]);
 
   const departureIata = departureAirport?.iata;
   const arrivalIata = arrivalAirport?.iata;
 
   // Selected airports stay in the pin layer so they keep their category colour;
-  // they are only ever added, never filtered out.
+  // they are only ever added, never filtered out. With keepUnconnected every
+  // airport matching the filters stays on the map around a selection too,
+  // with everything the selection does not connect to faded (see fadedIatas).
   const pinAirports = useMemo(() => {
-    const pins = [...(noSelection ? airports : connectedAirports)];
+    const pins = [...(noSelection || keepUnconnected ? airports : connectedAirports)];
     const present = new Set(pins.map((airport) => airport.iata));
 
     for (const selected of [departureAirport, arrivalAirport]) {
@@ -147,33 +250,55 @@ function FlightMap({
       }
     }
     return pins;
-  }, [noSelection, airports, connectedAirports, departureAirport, arrivalAirport]);
+  }, [
+    noSelection,
+    keepUnconnected,
+    airports,
+    connectedAirports,
+    departureAirport,
+    arrivalAirport,
+  ]);
 
-  // Feature ids must be stable per airport, not per position in the array, or a
-  // hover could survive a change of pin set and light up a different airport.
-  // Numbered from 1 because maplibre treats a missing id and 0 alike here.
-  const featureIdByIata = useMemo(() => {
-    const ids: Record<string, number> = {};
-    airports.forEach((airport, index) => {
-      ids[airport.iata] = index + 1;
-    });
-    return ids;
-  }, [airports]);
+  // The pins to recede: only with keepUnconnected and a selection, and then
+  // everything except the selected airports and what the anchor connects to.
+  // Until the anchor's connections arrive that is everything else, so they
+  // appear to light up as they load.
+  const fadedIatas = useMemo(() => {
+    if (noSelection || !keepUnconnected) return null;
+    const lit = new Set(connectedAirports.map((airport) => airport.iata));
+    for (const selected of [departureAirport, arrivalAirport]) {
+      if (selected) lit.add(selected.iata);
+    }
+    return new Set(
+      pinAirports.map((airport) => airport.iata).filter((iata) => !lit.has(iata)),
+    );
+  }, [
+    noSelection,
+    keepUnconnected,
+    connectedAirports,
+    departureAirport,
+    arrivalAirport,
+    pinAirports,
+  ]);
 
   const pinGeoJson = useMemo(
     () => ({
       type: "FeatureCollection" as const,
       features: pinAirports.map((airport) => ({
         type: "Feature" as const,
-        id: featureIdByIata[airport.iata],
-        properties: { iata: airport.iata, routeCount: airport.routeCount },
+        id: pinFeatureId(airport.iata),
+        properties: {
+          iata: airport.iata,
+          routeCount: airport.routeCount,
+          faded: fadedIatas?.has(airport.iata) ?? false,
+        },
         geometry: {
           type: "Point" as const,
           coordinates: [airport.lng, airport.lat],
         },
       })),
     }),
-    [pinAirports, featureIdByIata],
+    [pinAirports, fadedIatas],
   );
 
   // A plain object, not a Map: the react-map-gl import shadows the global.
@@ -205,13 +330,19 @@ function FlightMap({
 
   const confirmedTargetId = bothSelected ? otherAirport?.iata : undefined;
 
+  // The world view is fitted once per return to it, not every time the airport
+  // list changes: toggling a filter refetches the list, and re-fitting would
+  // yank the camera away from wherever the user had panned to.
+  const worldFitted = useRef(false);
+
   useEffect(() => {
     const CAMERA_DURATION = 1000;
     const map = mapRef.current;
     if (!map) return;
 
     if (!anchorAirport) {
-      if (airports.length === 0) return;
+      if (airports.length === 0 || worldFitted.current) return;
+      worldFitted.current = true;
 
       const lngs = airports.map((airport) => airport.lng);
       const lats = airports.map((airport) => airport.lat);
@@ -229,6 +360,8 @@ function FlightMap({
       );
       return;
     }
+
+    worldFitted.current = false;
 
     // Wait for this anchor's connections, otherwise the camera would
     // first zoom onto the lone anchor and then jump out again
@@ -265,8 +398,34 @@ function FlightMap({
       }
     : null;
 
+  // Hit areas are all the same size, so they overlap far more than the pins
+  // do; the pin whose centre is nearest the cursor wins, not the busiest one.
+  function nearestPin(event: MapLayerMouseEvent): MapGeoJSONFeature | undefined {
+    const map = event.target;
+    // Events bubbling up from the label markers (the close button) reach the
+    // map too, and would otherwise pick whichever pin sits behind them.
+    if (event.originalEvent.target !== map.getCanvas()) return undefined;
+
+    let nearest: MapGeoJSONFeature | undefined;
+    let nearestDistance = Infinity;
+    for (const feature of event.features ?? []) {
+      if (feature.geometry.type !== "Point") continue;
+
+      const [lng, lat] = feature.geometry.coordinates;
+      // Unwrapped towards the cursor, so a pin in a neighbouring world copy
+      // is measured where it is drawn.
+      const pixel = map.project([unwrapLng(lng, event.lngLat.lng), lat]);
+      const distance = (pixel.x - event.point.x) ** 2 + (pixel.y - event.point.y) ** 2;
+      if (distance < nearestDistance) {
+        nearest = feature;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
+  }
+
   function handlePinClick(event: MapLayerMouseEvent) {
-    const iata = event.features?.[0]?.properties?.iata;
+    const iata = nearestPin(event)?.properties?.iata;
     if (typeof iata !== "string") return;
 
     const airport = pinByIata[iata];
@@ -276,8 +435,44 @@ function FlightMap({
   // Applied straight to the map, so the colour changes in the same frame as the
   // mouse event. Derived from the cursor alone, so clicking or selecting can
   // never strand a pin in the hover colour.
-  function setHoveredFeature(map: MapLayerMouseEvent["target"], next: number | null) {
+  function showHoverLabel(
+    map: MapLayerMouseEvent["target"],
+    hovered: { airport: Airport; lng: number } | null,
+  ) {
+    // Selected airports already carry their full label.
+    if (!hovered || selectedIatas.includes(hovered.airport.iata)) {
+      hoverLabel.current?.remove();
+      return;
+    }
+
+    let label = hoverLabel.current;
+    if (!label) {
+      const element = document.createElement("div");
+      element.className = "airport-hover-label";
+      label = new MaplibreMarker({
+        element,
+        anchor: "bottom",
+        offset: [0, -(PIN.radius + PIN.stroke + 3)],
+      });
+      hoverLabel.current = label;
+    }
+
+    const name = document.createElement("span");
+    name.textContent = hovered.airport.name;
+    const code = document.createElement("strong");
+    code.textContent = hovered.airport.iata;
+    label.getElement().replaceChildren(name, code);
+
+    label.setLngLat([hovered.lng, hovered.airport.lat]).addTo(map);
+  }
+
+  function setHoveredFeature(
+    map: MapLayerMouseEvent["target"],
+    next: number | null,
+    hovered: { airport: Airport; lng: number } | null = null,
+  ) {
     if (hoveredFeatureId.current === next) return;
+    showHoverLabel(map, hovered);
 
     if (hoveredFeatureId.current !== null) {
       map.removeFeatureState(
@@ -294,14 +489,25 @@ function FlightMap({
   }
 
   function handlePinHover(event: MapLayerMouseEvent) {
-    const id = event.features?.[0]?.id;
-    setHoveredFeature(event.target, typeof id === "number" ? id : null);
+    const feature = nearestPin(event);
+    const airport = pinByIata[feature?.properties?.iata];
+    if (typeof feature?.id !== "number" || !airport) {
+      setHoveredFeature(event.target, null);
+      return;
+    }
+
+    // Placed on the world copy under the cursor, not the original.
+    setHoveredFeature(event.target, feature.id, {
+      airport,
+      lng: unwrapLng(airport.lng, event.lngLat.lng),
+    });
   }
 
   // Feature state outlives a setData, so selecting from the search box could
   // otherwise leave a pin coral while the cursor is nowhere near the map.
   useEffect(() => {
     const map = mapRef.current?.getMap();
+    hoverLabel.current?.remove();
     if (!map || hoveredFeatureId.current === null) return;
 
     map.removeFeatureState(
@@ -332,7 +538,7 @@ function FlightMap({
         onMove={(e) => syncWorldCopyOffsets(e.target)}
         onResize={(e) => syncWorldCopyOffsets(e.target)}
         interactiveLayerIds={
-          pinGeoJson.features.length > 0 ? PIN_LAYER_IDS : undefined
+          pinGeoJson.features.length > 0 ? PIN_HIT_LAYER_IDS : undefined
         }
         onMouseMove={handlePinHover}
         onMouseOut={(e) => setHoveredFeature(e.target, null)}
@@ -354,6 +560,24 @@ function FlightMap({
       >
         <NavigationControl position="bottom-right" />
         <ScaleControl position="bottom-left" />
+
+        {airlineNetworkGeoJson && airlineNetworkGeoJson.features.length > 0 && (
+          <Source id="airline-network" type="geojson" data={airlineNetworkGeoJson}>
+            <Layer
+              id="airline-network-line"
+              type="line"
+              beforeId={PIN_LAYER_ID}
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{
+                "line-color": ROUTE.airlineNetwork,
+                "line-width": 1.2,
+                "line-opacity": noSelection
+                  ? ROUTE.airlineNetworkOpacity
+                  : ROUTE.airlineNetworkFadedOpacity,
+              }}
+            />
+          </Source>
+        )}
 
         {networkGeoJson && networkGeoJson.features.length > 0 && (
           <Source id="network-routes" type="geojson" data={networkGeoJson}>
@@ -406,8 +630,15 @@ function FlightMap({
             <Layer
               id={PIN_LAYER_ID}
               type="circle"
-              // Busier airports draw over quieter ones wherever they collide.
-              layout={{ "circle-sort-key": ["get", "routeCount"] }}
+              // Busier airports draw over quieter ones wherever they collide,
+              // and every lit pin over every faded one.
+              layout={{
+                "circle-sort-key": [
+                  "+",
+                  ["get", "routeCount"],
+                  ["case", ["boolean", ["get", "faded"], false], 0, 100000],
+                ],
+              }}
               paint={{
                 // ["step", input, <tier0>, 8, <tier1>, 25, <tier2>, 100, <tier3>]
                 "circle-radius": [
@@ -454,6 +685,35 @@ function FlightMap({
                   PIN.selectedRingWidth,
                   PIN.stroke,
                 ],
+                // A hovered pin comes back to full strength, so a faded one
+                // is still readable before it is clicked.
+                "circle-opacity": [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  1,
+                  ["boolean", ["get", "faded"], false],
+                  PIN.fadedOpacity,
+                  1,
+                ],
+                "circle-stroke-opacity": [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  1,
+                  ["boolean", ["get", "faded"], false],
+                  PIN.fadedOpacity,
+                  1,
+                ],
+              }}
+            />
+            <Layer
+              id={PIN_HIT_LAYER_ID}
+              type="circle"
+              // Hit-testing ignores opacity, so these stay clickable.
+              paint={{
+                "circle-radius": PIN.radius,
+                "circle-stroke-width": PIN.stroke,
+                "circle-opacity": 0,
+                "circle-stroke-opacity": 0,
               }}
             />
           </Source>
@@ -473,11 +733,10 @@ function FlightMap({
               // close button opts back in.
               style={{ pointerEvents: "none" }}
             >
-              <span className="airport-marker-label">
-                <span className="airport-marker-text">
-                  <strong>{airport.iata}</strong>
-                  <small>{airport.name}</small>
-                </span>
+              {/* The hover tag's look, plus a close button. */}
+              <span className="airport-hover-label">
+                <span>{airport.name}</span>
+                <strong>{airport.iata}</strong>
 
                 <button
                   type="button"

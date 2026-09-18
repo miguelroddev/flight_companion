@@ -1,0 +1,36 @@
+/* A rounded square, like an app icon: the logos are square tiles drawn to
+   fill it edge to edge, which a circle would clip at the corners. The hairline
+   keeps white-background logos from dissolving into the panel. */
+.airline-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  width: 24px;
+  height: 24px;
+
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--panel-border);
+
+  background: var(--logo-backdrop);
+  object-fit: cover;
+}
+
+.airline-icon--fallback {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.airline-icon--small {
+  width: 20px;
+  height: 20px;
+
+  border-radius: 5px;
+}
+
+.airline-icon--small.airline-icon--fallback {
+  font-size: 8px;
+}

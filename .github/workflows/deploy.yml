@@ -33,6 +33,9 @@ jobs:
             # schema nothing is serving from yet.
             docker compose -f compose.prod.yaml up -d db
             docker compose -f compose.prod.yaml run --rm backend alembic upgrade head
+            # Alliance membership is a list in code, not part of the data dump:
+            # re-applied every deploy so an edit to it ships with the code.
+            docker compose -f compose.prod.yaml run --rm backend python -m app.alliances
 
             docker compose -f compose.prod.yaml up -d
             docker image prune -f

@@ -10,6 +10,14 @@ export const ROUTE = {
   // A step darker than the 100+ pin tier, so the chosen route reads as the
   // heaviest blue on the map.
   selected: "#1b3480",
+  // Every route of the airlines picked in the filter. A clear mid-blue kept
+  // translucent: pale blues vanish into the water, and a solid line would
+  // bury the map under a big carrier's thousand-odd routes.
+  airlineNetwork: "#2f6fd6",
+  airlineNetworkOpacity: 0.35,
+  // Once an airport is selected: still there for context, but well behind
+  // that airport's own routes.
+  airlineNetworkFadedOpacity: 0.1,
   // Pale, not dark: the casing is wider than the line, and a dark one would
   // swallow a navy route. White haloes it against the blue ocean instead.
   casing: "rgb(255 255 255 / 85%)",
@@ -28,6 +36,9 @@ export const PIN = {
   // backed up by the label above the pin.
   selectedRing: "#111827",
   selectedRingWidth: 2,
+  // Pins of a filtered airline network that the selected airport does not
+  // connect to: present, but receded.
+  fadedOpacity: 0.2,
 };
 
 /* Ordered quietest -> busiest: red, yellow, cyan, deep blue. This is a

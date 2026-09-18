@@ -1,11 +1,9 @@
 .route-info-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 
   width: 300px;
   max-width: calc(100vw - 32px);
-  padding: 12px 14px;
 
   border: 1px solid var(--panel-border);
   border-radius: 12px;
@@ -13,65 +11,161 @@
   background: var(--panel-bg);
   backdrop-filter: blur(12px);
   color: var(--text-primary);
-}
-
-.route-info-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-
-  font-size: 13px;
-  font-weight: 600;
+  /* Set here rather than inherited: #root in index.css centres all text and
+     sets a tall line height for the home page, which pushed unaligned airline
+     names to the middle and made the alliance pills fat. */
+  text-align: left;
   line-height: 1.3;
 }
 
-.route-info-arrow {
-  color: var(--text-muted);
+/* The header reads like a boarding pass: origin and destination codes at the
+   ends, the flight between them. */
+.route-pass {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+
+  padding: 14px 16px 12px;
 }
 
-.route-info-meta {
-  color: var(--text-secondary);
-  font-size: 11px;
-}
-
-.route-info-services {
+.route-endpoint {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
+  min-width: 0;
+}
 
-  padding-top: 8px;
-  border-top: 1px solid var(--panel-border);
+.route-endpoint--end {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.route-endpoint-code {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.route-endpoint-place {
+  max-width: 100%;
+  overflow: hidden;
+
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.route-pass-middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+
+  min-width: 84px;
+}
+
+.route-pass-duration {
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.route-pass-distance {
+  color: var(--text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* A dashed flight path with the plane at its centre. */
+.route-pass-line {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 14px;
+}
+
+.route-pass-line::before {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+
+  border-top: 1.5px dashed var(--input-border);
+  content: "";
+}
+
+.route-pass-plane {
+  position: relative;
+
+  width: 14px;
+  height: 14px;
+  /* Vertical, because the rotation below turns it into the horizontal gap
+     that parts the dashed line around the plane. */
+  padding: 3px 0;
+
+  background: var(--panel-bg);
+  fill: var(--route-selected);
+  transform: rotate(90deg);
+  box-sizing: content-box;
+}
+
+.route-airlines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+
+  padding: 10px 16px 12px;
+
+  border-top: 1px dashed var(--panel-border);
+}
+
+.route-airlines-title {
+  margin: 0;
+
+  font-family: inherit;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Busy routes list a dozen carriers or more; scroll rather than grow down
+   the screen. */
+.route-airlines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  max-height: 220px;
+  margin: 0 -6px;
+  padding: 0;
+  overflow-y: auto;
+
+  list-style: none;
 }
 
 .airline-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+
+  padding: 4px 6px;
+
+  border-radius: 8px;
 }
 
-.airline-icon {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-
-  width: 22px;
-  height: 22px;
-
-  border-radius: 50%;
-
-  background: var(--logo-backdrop);
-  object-fit: contain;
-  object-position: center;
-  padding: 2px;
-}
-
-.airline-icon--fallback {
+.airline-row:hover {
   background: var(--input-bg);
-  color: var(--text-secondary);
-  font-size: 9px;
-  font-weight: 700;
 }
 
 .airline-name {
@@ -79,23 +173,30 @@
   flex: 1 1 auto;
 
   color: var(--text-primary);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.airline-alliance {
+  flex-shrink: 0;
+
+  padding: 2px 6px;
+
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .airline-days {
   display: flex;
   flex-shrink: 0;
   gap: 3px;
-}
-
-.airline-days-unavailable {
-  flex-shrink: 0;
-
-  color: var(--text-muted);
-  font-size: 10px;
-  font-style: italic;
 }
 
 .day-chip {

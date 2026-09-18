@@ -3,10 +3,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.database import get_db
 from app.models import Airline, Airport, Route
+from app.route_filters import RouteFilterParams
 from app.schemas import AirlineOut, AirlineServiceOut, AirportOut, RouteOut
 
 router = APIRouter(prefix="/api")
@@ -15,12 +16,17 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 def outbound_route_counts(
-    db: Session, airport_ids: Iterable[int] | None = None
+    db: Session,
+    airport_ids: Iterable[int] | None = None,
 ) -> dict[int, int]:
     """Outbound route rows per airport id, in a single grouped query.
 
     Pass no ids to count every airport, which is cheaper than an IN clause
     listing the whole dataset.
+
+    Always every route, never just the ones matching the filters: the count
+    sizes and colours the map pins, and a hub must still read as a hub while
+    filters thin out what is shown around it.
     """
     statement = select(Route.source_airport_id, func.count()).group_by(
         Route.source_airport_id
@@ -38,8 +44,17 @@ def get_airport_or_404(db: Session, iata: str) -> Airport:
 
 
 @router.get("/airports", response_model=list[AirportOut])
-def list_airports(db: DbSession):
-    airports = db.scalars(select(Airport).order_by(Airport.iata_code)).all()
+def list_airports(db: DbSession, filters: RouteFilterParams):
+    statement = select(Airport).order_by(Airport.iata_code)
+    if filters.conditions():
+        # Served in either direction, so an airport that matching routes only
+        # fly into still gets a pin.
+        served = filters.apply(select(Route.source_airport_id)).union(
+            filters.apply(select(Route.destination_airport_id))
+        )
+        statement = statement.where(Airport.id.in_(served))
+
+    airports = db.scalars(statement).all()
     counts = outbound_route_counts(db)
     return [
         AirportOut.from_model(airport, counts.get(airport.id, 0))
@@ -58,6 +73,7 @@ def get_airport(iata: str, db: DbSession):
 def list_connected_airports(
     iata: str,
     db: DbSession,
+    filters: RouteFilterParams,
     direction: Literal["outbound", "inbound"] = "outbound",
 ):
     """Airports reachable from (outbound) or flying into (inbound) this airport."""
@@ -68,13 +84,14 @@ def list_connected_airports(
     else:
         join_column, filter_column = Route.source_airport_id, Route.destination_airport_id
 
-    connected = db.scalars(
+    statement = (
         select(Airport)
         .join(Route, join_column == Airport.id)
         .where(filter_column == airport.id)
         .distinct()
         .order_by(Airport.iata_code)
-    ).all()
+    )
+    connected = db.scalars(filters.apply(statement)).all()
     counts = outbound_route_counts(db, [a.id for a in connected])
     return [AirportOut.from_model(a, counts.get(a.id, 0)) for a in connected]
 
@@ -84,12 +101,13 @@ def get_route(
     db: DbSession,
     departure: Annotated[str, Query(alias="from")],
     arrival: Annotated[str, Query(alias="to")],
+    filters: RouteFilterParams,
 ):
     """All airline services flying departure -> arrival (one direction only)."""
     departure_airport = get_airport_or_404(db, departure)
     arrival_airport = get_airport_or_404(db, arrival)
 
-    rows = db.scalars(
+    statement = (
         select(Route)
         .options(joinedload(Route.airline))
         .where(
@@ -98,7 +116,8 @@ def get_route(
         )
         .join(Route.airline)
         .order_by(Airline.name)
-    ).all()
+    )
+    rows = db.scalars(filters.apply(statement)).all()
     if not rows:
         raise HTTPException(
             status_code=404,
@@ -121,6 +140,44 @@ def get_route(
             for row in rows
         ],
     )
+
+
+@router.get("/network", response_model=list[tuple[str, str]])
+def get_network(db: DbSession, filters: RouteFilterParams):
+    """Every airport pair the chosen airlines fly between, as [iata, iata],
+    once per pair whichever direction is flown. The other filters narrow it
+    as usual.
+
+    Only answers for an airline filter: unfiltered, this would be every one
+    of the ~30k pairs in the dataset, far more than the map should draw.
+    """
+    if not filters.airlines:
+        return []
+
+    source = aliased(Airport)
+    destination = aliased(Airport)
+    pairs = db.execute(
+        filters.apply(
+            select(source.iata_code, destination.iata_code)
+            .select_from(Route)
+            .join(source, Route.source_airport_id == source.id)
+            .join(destination, Route.destination_airport_id == destination.id)
+            .distinct()
+        )
+    ).all()
+    return sorted({tuple(sorted(pair)) for pair in pairs})
+
+
+@router.get("/airlines", response_model=list[AirlineOut])
+def list_airlines(db: DbSession):
+    """Every airline flying at least one route, by name: the Airlines filter's
+    options."""
+    airlines = db.scalars(
+        select(Airline)
+        .where(Airline.id.in_(select(Route.airline_id)))
+        .order_by(Airline.name)
+    ).all()
+    return [AirlineOut.from_model(airline) for airline in airlines]
 
 
 @router.get("/airlines/{code}", response_model=AirlineOut)

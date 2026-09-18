@@ -4,12 +4,15 @@ import { Link } from "react-router";
 import FlightMap from "../features/map/FlightMap";
 import AirportSearchInput from "../features/airports/AirportSearchInput";
 import RouteInfoPanel from "../features/route/RouteInfoPanel";
+import FilterBar from "../features/filters/FilterBar";
 
 import {
   fetchAirports,
   fetchRoute,
+  NO_FILTERS,
   type Airport,
   type Route,
+  type RouteFilters,
 } from "../api/flights";
 import logo from "../assets/branding/logo.png";
 
@@ -20,6 +23,12 @@ export type SelectionRole = "departure" | "arrival";
 function MapPage() {
   const [airports, setAirports] = useState<Airport[]>([]);
   const [airportsError, setAirportsError] = useState(false);
+  // Replaced wholesale on every change, so its identity alone tells the
+  // fetches below when to refire.
+  const [filters, setFilters] = useState<RouteFilters>(NO_FILTERS);
+  // A view option, not a filter: it changes nothing fetched, and Clear all
+  // leaves it alone.
+  const [showIndirect, setShowIndirect] = useState(false);
 
   const [departureAirport, setDepartureAirport] =
     useState<Airport | null>(null);
@@ -74,6 +83,7 @@ function MapPage() {
   // previous selection is never shown for the current one
   const [routeResult, setRouteResult] = useState<{
     key: string;
+    filters: RouteFilters;
     route: Route | null;
   } | null>(null);
 
@@ -84,33 +94,38 @@ function MapPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchAirports(controller.signal)
-      .then(setAirports)
+    fetchAirports(filters, controller.signal)
+      .then((airports) => {
+        setAirports(airports);
+        setAirportsError(false);
+      })
       .catch((error) => {
         if (controller.signal.aborted) return;
         console.error(error);
         setAirportsError(true);
       });
     return () => controller.abort();
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     if (!departureIata || !arrivalIata) return;
 
     const key = `${departureIata}-${arrivalIata}`;
     const controller = new AbortController();
-    fetchRoute(departureIata, arrivalIata, controller.signal)
-      .then((route) => setRouteResult({ key, route }))
+    fetchRoute(departureIata, arrivalIata, filters, controller.signal)
+      .then((route) => setRouteResult({ key, filters, route }))
       .catch((error) => {
         if (controller.signal.aborted) return;
         console.error(error);
-        setRouteResult({ key, route: null });
+        setRouteResult({ key, filters, route: null });
       });
     return () => controller.abort();
-  }, [departureIata, arrivalIata]);
+  }, [departureIata, arrivalIata, filters]);
 
   const selectedRoute =
-    routeResult && routeResult.key === routeKey ? routeResult.route : null;
+    routeResult && routeResult.key === routeKey && routeResult.filters === filters
+      ? routeResult.route
+      : null;
 
   return (
     <main className="map-page">
@@ -119,6 +134,8 @@ function MapPage() {
         departureAirport={departureAirport}
         arrivalAirport={arrivalAirport}
         firstSelectedRole={firstSelectedRole}
+        filters={filters}
+        showIndirect={showIndirect}
         onAirportClick={handleAirportClick}
         onAirportDeselect={(role) =>
           role === "departure" ? clearDeparture() : clearArrival()
@@ -152,6 +169,13 @@ function MapPage() {
 
           <div aria-hidden="true" />
         </nav>
+
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          showIndirect={showIndirect}
+          onShowIndirectChange={setShowIndirect}
+        />
 
         {airportsError && (
           <p className="map-status" role="alert">

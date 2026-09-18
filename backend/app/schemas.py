@@ -40,10 +40,17 @@ class AirlineOut(ApiModel):
     iata: str | None
     icao: str | None
     name: str
+    # star_alliance, oneworld, skyteam, or None for unaligned carriers
+    alliance: str | None
 
     @classmethod
     def from_model(cls, airline: Airline) -> "AirlineOut":
-        return cls(iata=airline.iata_code, icao=airline.icao_code, name=airline.name)
+        return cls(
+            iata=airline.iata_code,
+            icao=airline.icao_code,
+            name=airline.name,
+            alliance=airline.alliance,
+        )
 
 
 class AirlineServiceOut(ApiModel):
