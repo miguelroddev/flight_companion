@@ -4,9 +4,12 @@
   overflow: hidden;
 }
 
+/* Runs down the screen to just above the airport legend (bottom 44px plus its
+   ~118px height, in FlightMap.css), so a tall panel ends there and scrolls
+   rather than running off the screen or over the legend. */
 .map-overlay {
   position: absolute;
-  inset: 16px 16px auto 16px;
+  inset: 16px 16px 176px 16px;
   z-index: 10;
 
   display: flex;
@@ -19,10 +22,24 @@
 }
 
 .map-overlay > * {
+  flex-shrink: 0;
   pointer-events: auto;
 }
 
+/* The route and connections panels alone give way when space runs out,
+   scrolling within whatever height is left under the header. */
+.map-overlay > .route-info-panel {
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Above the filter bar, which is raised over the panels below it: the
+   airport search suggestions drop down across the filter bar. */
 .map-navbar {
+  position: relative;
+  z-index: 3;
+
   width: 100%;
 
   display: grid;

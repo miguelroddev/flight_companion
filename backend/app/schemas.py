@@ -64,3 +64,21 @@ class RouteOut(ApiModel):
     arrival: AirportOut
     duration_minutes: int | None
     services: list[AirlineServiceOut]
+
+
+class ItineraryOut(ApiModel):
+    """A way to fly departure -> arrival through one or two other airports."""
+
+    # The stops in flying order, departure and arrival excluded
+    via: list[AirportOut]
+    # Flying time of each leg, len(via) + 1 of them
+    leg_minutes: list[int]
+    # Their sum. There are no schedules, so layovers are not included.
+    total_minutes: int
+
+
+class ItinerariesOut(ApiModel):
+    # 1 or 2; None when nothing was found within two stops
+    stops: Literal[1, 2] | None
+    # Fastest first
+    itineraries: list[ItineraryOut]

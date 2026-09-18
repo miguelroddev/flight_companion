@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import FlightMap from "../features/map/FlightMap";
 import AirportSearchInput from "../features/airports/AirportSearchInput";
 import RouteInfoPanel from "../features/route/RouteInfoPanel";
+import ConnectionsPanel from "../features/route/ConnectionsPanel";
 import FilterBar from "../features/filters/FilterBar";
 
 import {
   fetchAirports,
+  fetchItineraries,
   fetchRoute,
   NO_FILTERS,
   type Airport,
+  type Itineraries,
   type Route,
   type RouteFilters,
 } from "../api/flights";
@@ -19,6 +22,8 @@ import logo from "../assets/branding/logo.png";
 import "./MapPage.css";
 
 export type SelectionRole = "departure" | "arrival";
+
+const NO_PATHS: Airport[][] = [];
 
 function MapPage() {
   const [airports, setAirports] = useState<Airport[]>([]);
@@ -122,10 +127,69 @@ function MapPage() {
     return () => controller.abort();
   }, [departureIata, arrivalIata, filters]);
 
-  const selectedRoute =
-    routeResult && routeResult.key === routeKey && routeResult.filters === filters
-      ? routeResult.route
+  const routeIsCurrent =
+    routeResult !== null && routeResult.key === routeKey && routeResult.filters === filters;
+  const selectedRoute = routeIsCurrent ? routeResult.route : null;
+  // Known to have no direct flight (under the current filters), as opposed to
+  // not yet known.
+  const noDirectRoute = routeIsCurrent && routeResult.route === null;
+
+  // With no direct flight, the ways to get there with one or two stops.
+  // Tagged like routeResult, so a slow answer for an old pair is never shown.
+  const [itinerariesResult, setItinerariesResult] = useState<{
+    key: string;
+    filters: RouteFilters;
+    data: Itineraries | null;
+    failed: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!departureIata || !arrivalIata || !noDirectRoute) return;
+
+    const key = `${departureIata}-${arrivalIata}`;
+    const controller = new AbortController();
+    fetchItineraries(departureIata, arrivalIata, filters, controller.signal)
+      .then((data) => setItinerariesResult({ key, filters, data, failed: false }))
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.error(error);
+        setItinerariesResult({ key, filters, data: null, failed: true });
+      });
+    return () => controller.abort();
+  }, [departureIata, arrivalIata, filters, noDirectRoute]);
+
+  const currentItineraries =
+    itinerariesResult &&
+    itinerariesResult.key === routeKey &&
+    itinerariesResult.filters === filters
+      ? itinerariesResult
       : null;
+
+  // The itinerary opened in the panel, tied to the result it was picked from,
+  // so a new search starts with nothing open.
+  const [openedItinerary, setOpenedItinerary] = useState<{
+    result: typeof itinerariesResult;
+    index: number;
+  } | null>(null);
+  const openedIndex =
+    openedItinerary && currentItineraries && openedItinerary.result === currentItineraries
+      ? openedItinerary.index
+      : null;
+
+  // Every option as departure, stops and arrival in flying order, for the
+  // map to draw; the opened one is drawn over the rest.
+  const itineraryPaths = useMemo(() => {
+    const itineraries = currentItineraries?.data?.itineraries;
+    if (!itineraries || !departureAirport || !arrivalAirport) return NO_PATHS;
+    return itineraries.map((itinerary) => [departureAirport, ...itinerary.via, arrivalAirport]);
+  }, [currentItineraries, departureAirport, arrivalAirport]);
+  const itineraryPath = openedIndex === null ? null : (itineraryPaths[openedIndex] ?? null);
+
+  const filtersActive =
+    filters.alliances.length > 0 ||
+    filters.airlines.length > 0 ||
+    filters.distanceKm !== null ||
+    filters.durationMinutes !== null;
 
   return (
     <main className="map-page">
@@ -136,6 +200,8 @@ function MapPage() {
         firstSelectedRole={firstSelectedRole}
         filters={filters}
         showIndirect={showIndirect}
+        itineraryOptions={itineraryPaths}
+        itineraryPath={itineraryPath}
         onAirportClick={handleAirportClick}
         onAirportDeselect={(role) =>
           role === "departure" ? clearDeparture() : clearArrival()
@@ -188,6 +254,23 @@ function MapPage() {
             departureAirport={departureAirport}
             arrivalAirport={arrivalAirport}
             route={selectedRoute}
+          />
+        )}
+
+        {departureAirport && arrivalAirport && noDirectRoute && (
+          <ConnectionsPanel
+            departureAirport={departureAirport}
+            arrivalAirport={arrivalAirport}
+            result={currentItineraries?.data ?? null}
+            failed={currentItineraries?.failed ?? false}
+            filters={filters}
+            filtersActive={filtersActive}
+            selectedIndex={openedIndex}
+            onSelect={(index) =>
+              setOpenedItinerary(
+                index === null ? null : { result: currentItineraries, index },
+              )
+            }
           />
         )}
       </div>

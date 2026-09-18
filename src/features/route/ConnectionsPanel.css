@@ -1,0 +1,214 @@
+.connection-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.connection-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+  padding: 8px 10px;
+
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+
+  color: var(--text-primary);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.connection-option:hover {
+  background: var(--input-bg);
+}
+
+.connection-option[aria-pressed="true"] {
+  border-color: var(--route-selected);
+  background: color-mix(in srgb, var(--route-selected) 8%, transparent);
+}
+
+.connection-option:focus-visible {
+  outline: 2px solid var(--route-selected);
+  outline-offset: 2px;
+}
+
+.connection-via {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+
+  min-width: 0;
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.connection-via-label {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.connection-stop {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.connection-stop-separator {
+  margin-right: 1px;
+
+  color: var(--text-muted);
+}
+
+.connection-stop-code {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.connection-time {
+  flex: none;
+
+  color: var(--route-selected-ink);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.connections-note {
+  margin: 2px 0 0;
+
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.connections-status {
+  margin: 4px 0;
+
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.connections-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  padding: 4px 0;
+
+  font-size: 12px;
+}
+
+.connections-empty strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.connections-empty p {
+  margin: 0;
+
+  color: var(--text-secondary);
+}
+
+/* The chosen itinerary: one card per leg. */
+.connection-legs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  padding: 10px 16px 14px;
+
+  border-top: 1px dashed var(--panel-border);
+}
+
+.connection-leg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  padding: 8px 10px;
+
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+
+  background: var(--logo-backdrop);
+}
+
+.connection-leg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connection-leg-number {
+  display: grid;
+  flex: none;
+  place-items: center;
+
+  width: 18px;
+  height: 18px;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+  background: var(--route-selected);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.connection-leg-route {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+
+  min-width: 0;
+
+  font-size: 13px;
+}
+
+.connection-leg-arrow {
+  color: var(--text-muted);
+}
+
+.connection-leg-places {
+  overflow: hidden;
+  flex-basis: 100%;
+
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.connection-leg-time {
+  flex: none;
+
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inside a card the airline rows sit flush with its edges. */
+.connection-leg .route-airlines-list {
+  max-height: 160px;
+  margin: 0 -4px;
+}

@@ -43,6 +43,23 @@ export type Route = {
   services: AirlineService[];
 };
 
+// A way to fly between two airports with no direct route between them.
+export type Itinerary = {
+  // The stops in flying order, departure and arrival excluded
+  via: Airport[];
+  // Flying time of each leg: one more than there are stops
+  legMinutes: number[];
+  // Their sum. There are no schedules, so layovers are not included.
+  totalMinutes: number;
+};
+
+export type Itineraries = {
+  // null when nothing was found within two stops
+  stops: 1 | 2 | null;
+  // Fastest first. Every one-stop option, or the fastest two-stop ones.
+  itineraries: Itinerary[];
+};
+
 export type RouteDirection = "outbound" | "inbound";
 
 export type Alliance = "star_alliance" | "oneworld" | "skyteam";
@@ -154,6 +171,19 @@ export function fetchNetwork(
 ): Promise<[string, string][]> {
   const params = appendFilters(new URLSearchParams(), filters);
   return getJson(withQuery("/api/network", params), signal);
+}
+
+export function fetchItineraries(
+  fromIata: string,
+  toIata: string,
+  filters: RouteFilters,
+  signal?: AbortSignal,
+): Promise<Itineraries> {
+  const params = appendFilters(
+    new URLSearchParams({ from: fromIata, to: toIata }),
+    filters,
+  );
+  return getJson(`/api/itineraries?${params}`, signal);
 }
 
 // Resolves to null when no route exists between the two airports.

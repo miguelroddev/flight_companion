@@ -32,6 +32,10 @@ type FlightMapProps = {
   filters: RouteFilters;
   // Keep the airports the selection has no direct route to on the map, faded.
   showIndirect: boolean;
+  // Every connection on offer, each as departure, stops and arrival in flying
+  // order, and the one opened in the panel, if any.
+  itineraryOptions: Airport[][];
+  itineraryPath: Airport[] | null;
   onAirportClick: (airport: Airport) => void;
   onAirportDeselect: (role: SelectionRole) => void;
 };
@@ -110,6 +114,8 @@ function FlightMap({
   firstSelectedRole,
   filters,
   showIndirect,
+  itineraryOptions,
+  itineraryPath,
   onAirportClick,
   onAirportDeselect,
 }: FlightMapProps) {
@@ -235,6 +241,24 @@ function FlightMap({
   const departureIata = departureAirport?.iata;
   const arrivalIata = arrivalAirport?.iata;
 
+  // The stops of the opened connection, which are labelled like the selected
+  // airports.
+  const itineraryStops = useMemo(
+    () => (itineraryPath ? itineraryPath.slice(1, -1) : NO_AIRPORTS),
+    [itineraryPath],
+  );
+
+  // The stops of every connection on offer, which join the selected airports
+  // as pins that are always shown and never faded.
+  // (A plain object, not a Map: the react-map-gl import shadows the global.)
+  const optionStops = useMemo(() => {
+    const stops: Record<string, Airport> = {};
+    for (const path of itineraryOptions) {
+      for (const stop of path.slice(1, -1)) stops[stop.iata] = stop;
+    }
+    return Object.values(stops);
+  }, [itineraryOptions]);
+
   // Selected airports stay in the pin layer so they keep their category colour;
   // they are only ever added, never filtered out. With keepUnconnected every
   // airport matching the filters stays on the map around a selection too,
@@ -243,7 +267,7 @@ function FlightMap({
     const pins = [...(noSelection || keepUnconnected ? airports : connectedAirports)];
     const present = new Set(pins.map((airport) => airport.iata));
 
-    for (const selected of [departureAirport, arrivalAirport]) {
+    for (const selected of [departureAirport, arrivalAirport, ...optionStops]) {
       if (selected && !present.has(selected.iata)) {
         pins.push(selected);
         present.add(selected.iata);
@@ -257,6 +281,7 @@ function FlightMap({
     connectedAirports,
     departureAirport,
     arrivalAirport,
+    optionStops,
   ]);
 
   // The pins to recede: only with keepUnconnected and a selection, and then
@@ -266,7 +291,7 @@ function FlightMap({
   const fadedIatas = useMemo(() => {
     if (noSelection || !keepUnconnected) return null;
     const lit = new Set(connectedAirports.map((airport) => airport.iata));
-    for (const selected of [departureAirport, arrivalAirport]) {
+    for (const selected of [departureAirport, arrivalAirport, ...optionStops]) {
       if (selected) lit.add(selected.iata);
     }
     return new Set(
@@ -278,6 +303,7 @@ function FlightMap({
     connectedAirports,
     departureAirport,
     arrivalAirport,
+    optionStops,
     pinAirports,
   ]);
 
@@ -318,15 +344,67 @@ function FlightMap({
   // Carries the role so the label's close button knows which one to clear. An
   // airport picked as both departure and arrival is labelled once.
   const labelledAirports = useMemo(() => {
-    const labelled: { role: SelectionRole; airport: Airport }[] = [];
+    // role is null for a connection's stops, which have no close button:
+    // they go away with the connection, not on their own.
+    const labelled: { role: SelectionRole | null; airport: Airport }[] = [];
     if (departureAirport) {
       labelled.push({ role: "departure", airport: departureAirport });
     }
     if (arrivalAirport && arrivalAirport.iata !== departureAirport?.iata) {
       labelled.push({ role: "arrival", airport: arrivalAirport });
     }
+    for (const stop of itineraryStops) {
+      labelled.push({ role: null, airport: stop });
+    }
     return labelled;
-  }, [departureAirport, arrivalAirport]);
+  }, [departureAirport, arrivalAirport, itineraryStops]);
+
+  // Every leg of every connection on offer, once each: options often share
+  // a first or last leg.
+  const itineraryOptionsGeoJson = useMemo(() => {
+    if (itineraryOptions.length === 0) return null;
+    const legs: Record<string, [Airport, Airport]> = {};
+    for (const path of itineraryOptions) {
+      for (let index = 1; index < path.length; index++) {
+        legs[`${path[index - 1].iata}-${path[index].iata}`] = [path[index - 1], path[index]];
+      }
+    }
+    return {
+      type: "FeatureCollection" as const,
+      features: Object.values(legs).map(([from, to]) => lineFeature(from, to)),
+    };
+  }, [itineraryOptions]);
+
+  // The opened connection, leg by leg, drawn like a confirmed direct route
+  // over the rest.
+  const itineraryGeoJson = useMemo(() => {
+    if (!itineraryPath) return null;
+    return {
+      type: "FeatureCollection" as const,
+      features: itineraryPath
+        .slice(1)
+        .map((to, index) => lineFeature(itineraryPath[index], to)),
+    };
+  }, [itineraryPath]);
+
+  // Frames the opened connection, or all of them when none is open: stops can
+  // lie well outside the view fitted to the departure's network.
+  useEffect(() => {
+    const map = mapRef.current;
+    const framed = itineraryPath ?? itineraryOptions.flat();
+    if (!map || framed.length === 0) return;
+
+    const reference = framed[0].lng;
+    const lngs = framed.map((airport) => unwrapLng(airport.lng, reference));
+    const lats = framed.map((airport) => airport.lat);
+    map.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      { padding: SELECTION_FIT_BOUNDS_PADDING, duration: 1000 },
+    );
+  }, [itineraryPath, itineraryOptions]);
 
   const confirmedTargetId = bothSelected ? otherAirport?.iata : undefined;
 
@@ -439,8 +517,12 @@ function FlightMap({
     map: MapLayerMouseEvent["target"],
     hovered: { airport: Airport; lng: number } | null,
   ) {
-    // Selected airports already carry their full label.
-    if (!hovered || selectedIatas.includes(hovered.airport.iata)) {
+    // Selected airports and a connection's stops already carry a label.
+    const labelled =
+      hovered !== null &&
+      (selectedIatas.includes(hovered.airport.iata) ||
+        itineraryStops.some((stop) => stop.iata === hovered.airport.iata));
+    if (!hovered || labelled) {
       hoverLabel.current?.remove();
       return;
     }
@@ -625,6 +707,44 @@ function FlightMap({
           </Source>
         )}
 
+        {itineraryOptionsGeoJson && (
+          <Source id="itinerary-options" type="geojson" data={itineraryOptionsGeoJson}>
+            <Layer
+              id="itinerary-options-line"
+              type="line"
+              beforeId={PIN_LAYER_ID}
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{
+                "line-color": ROUTE.selected,
+                "line-width": 2,
+                // Receding once one option is opened and drawn over them.
+                "line-opacity": itineraryPath
+                  ? ROUTE.itineraryOptionFadedOpacity
+                  : ROUTE.itineraryOptionOpacity,
+              }}
+            />
+          </Source>
+        )}
+
+        {itineraryGeoJson && (
+          <Source id="itinerary" type="geojson" data={itineraryGeoJson}>
+            <Layer
+              id="itinerary-casing"
+              type="line"
+              beforeId={PIN_LAYER_ID}
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{ "line-color": ROUTE.casing, "line-width": 5.5 }}
+            />
+            <Layer
+              id="itinerary-line"
+              type="line"
+              beforeId={PIN_LAYER_ID}
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{ "line-color": ROUTE.selected, "line-width": 3 }}
+            />
+          </Source>
+        )}
+
         {pinGeoJson.features.length > 0 && (
           <Source id={PIN_SOURCE_ID} type="geojson" data={pinGeoJson}>
             <Layer
@@ -733,19 +853,22 @@ function FlightMap({
               // close button opts back in.
               style={{ pointerEvents: "none" }}
             >
-              {/* The hover tag's look, plus a close button. */}
+              {/* The hover tag's look, plus a close button on the selected
+                  airports. */}
               <span className="airport-hover-label">
                 <span>{airport.name}</span>
                 <strong>{airport.iata}</strong>
 
-                <button
-                  type="button"
-                  className="airport-marker-close"
-                  aria-label={`Clear ${role} airport ${airport.iata}`}
-                  onClick={() => onAirportDeselect(role)}
-                >
-                  ×
-                </button>
+                {role && (
+                  <button
+                    type="button"
+                    className="airport-marker-close"
+                    aria-label={`Clear ${role} airport ${airport.iata}`}
+                    onClick={() => onAirportDeselect(role)}
+                  >
+                    ×
+                  </button>
+                )}
               </span>
             </Marker>
           )),

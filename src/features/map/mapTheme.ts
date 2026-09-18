@@ -18,6 +18,10 @@ export const ROUTE = {
   // Once an airport is selected: still there for context, but well behind
   // that airport's own routes.
   airlineNetworkFadedOpacity: 0.1,
+  // Every connection on offer when there is no direct flight, in the
+  // selected-route navy; lighter still once one is opened over them.
+  itineraryOptionOpacity: 0.55,
+  itineraryOptionFadedOpacity: 0.25,
   // Pale, not dark: the casing is wider than the line, and a dark one would
   // swallow a navy route. White haloes it against the blue ocean instead.
   casing: "rgb(255 255 255 / 85%)",

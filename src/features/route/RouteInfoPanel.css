@@ -18,6 +18,13 @@
   line-height: 1.3;
 }
 
+/* When the panel is short of room it scrolls as a whole (see MapPage.css);
+   its sections keep their full height rather than squashing into each
+   other. */
+.route-info-panel > * {
+  flex-shrink: 0;
+}
+
 /* The header reads like a boarding pass: origin and destination codes at the
    ends, the flight between them. */
 .route-pass {
@@ -121,7 +128,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 0;
 
   padding: 10px 16px 12px;
 

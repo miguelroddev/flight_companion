@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Airport } from "../../api/flights";
 import "./AirportSearchInput.css";
 
@@ -19,6 +19,27 @@ function AirportSearchInput({
 }: AirportSearchInputProps) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // The suggestions close on a press anywhere outside the search box and its
+  // list, map included, and on Escape, like the filter dropdowns.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     setQuery(
@@ -51,7 +72,7 @@ function AirportSearchInput({
   }
 
   return (
-    <div className="airport-search">
+    <div className="airport-search" ref={containerRef}>
       <label className="airport-search-label">
         <span>{label}</span>
 

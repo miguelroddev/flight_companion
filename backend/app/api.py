@@ -2,15 +2,26 @@ from collections.abc import Iterable
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.database import get_db
 from app.models import Airline, Airport, Route
-from app.route_filters import RouteFilterParams
-from app.schemas import AirlineOut, AirlineServiceOut, AirportOut, RouteOut
+from app.route_filters import RouteFilterParams, RouteFilters
+from app.schemas import (
+    AirlineOut,
+    AirlineServiceOut,
+    AirportOut,
+    ItinerariesOut,
+    ItineraryOut,
+    RouteOut,
+)
 
 router = APIRouter(prefix="/api")
+
+# Two-stop combinations between big airports run into the thousands; only the
+# fastest are worth showing. One-stop options are always returned in full.
+MAX_TWO_STOP_ITINERARIES = 10
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -140,6 +151,112 @@ def get_route(
             for row in rows
         ],
     )
+
+
+def leg_minutes(
+    db: Session, filters: RouteFilters, *conditions: ColumnElement[bool]
+) -> dict[tuple[int, int], int]:
+    """Fastest flying time for each (source, destination) airport-id pair that
+    matching routes connect, narrowed by conditions on Route. Pairs with no
+    known duration are left out, as they cannot be ranked."""
+    statement = filters.apply(
+        select(
+            Route.source_airport_id,
+            Route.destination_airport_id,
+            func.min(Route.duration_minutes),
+        )
+        .where(*conditions)
+        .group_by(Route.source_airport_id, Route.destination_airport_id)
+    )
+    return {
+        (source, destination): minutes
+        for source, destination, minutes in db.execute(statement)
+        if minutes is not None
+    }
+
+
+@router.get("/itineraries", response_model=ItinerariesOut)
+def list_itineraries(
+    db: DbSession,
+    departure: Annotated[str, Query(alias="from")],
+    arrival: Annotated[str, Query(alias="to")],
+    filters: RouteFilterParams,
+):
+    """Ways to fly departure -> arrival with one stop, or, only if there are
+    none, with two. Every leg must satisfy the filters.
+
+    All one-stop options are returned; of two-stop ones only the fastest few.
+    Ranked by total flying time: with no schedules, layovers are unknown.
+    """
+    departure_airport = get_airport_or_404(db, departure)
+    arrival_airport = get_airport_or_404(db, arrival)
+    if departure_airport.id == arrival_airport.id:
+        return ItinerariesOut(stops=None, itineraries=[])
+
+    # First legs keyed by where they land, last legs by where they leave from.
+    # A first leg straight to the arrival is a direct flight, not a stop, and
+    # a last leg from the departure would double back through it.
+    first = {
+        stop: minutes
+        for (_, stop), minutes in leg_minutes(
+            db, filters, Route.source_airport_id == departure_airport.id
+        ).items()
+        if stop != arrival_airport.id
+    }
+    last = {
+        stop: minutes
+        for (stop, _), minutes in leg_minutes(
+            db, filters, Route.destination_airport_id == arrival_airport.id
+        ).items()
+        if stop != departure_airport.id
+    }
+
+    # (stop ids, leg minutes)
+    found: list[tuple[list[int], list[int]]] = [
+        ([stop], [first[stop], last[stop]]) for stop in first.keys() & last.keys()
+    ]
+    stops = 1
+    if not found and first and last:
+        middle = leg_minutes(
+            db,
+            filters,
+            Route.source_airport_id.in_(list(first)),
+            Route.destination_airport_id.in_(list(last)),
+        )
+        found = [
+            ([one, two], [first[one], minutes, last[two]])
+            for (one, two), minutes in middle.items()
+        ]
+        found.sort(key=lambda option: sum(option[1]))
+        found = found[:MAX_TWO_STOP_ITINERARIES]
+        stops = 2
+
+    stop_ids = sorted({stop for stop_list, _ in found for stop in stop_list})
+    airports = {
+        airport.id: airport
+        for airport in db.scalars(select(Airport).where(Airport.id.in_(stop_ids)))
+    }
+    counts = outbound_route_counts(db, stop_ids)
+
+    itineraries = [
+        ItineraryOut(
+            via=[
+                AirportOut.from_model(airports[stop], counts.get(stop, 0))
+                for stop in stop_list
+            ],
+            leg_minutes=minutes,
+            total_minutes=sum(minutes),
+        )
+        for stop_list, minutes in found
+    ]
+    # Ties broken by the stops' codes, so the order is stable between calls.
+    itineraries.sort(
+        key=lambda itinerary: (
+            itinerary.total_minutes,
+            [airport.iata for airport in itinerary.via],
+        )
+    )
+    return ItinerariesOut(stops=stops if itineraries else None, itineraries=itineraries)
 
 
 @router.get("/network", response_model=list[tuple[str, str]])
