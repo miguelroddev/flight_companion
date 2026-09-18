@@ -1,5 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import { useIsMobile } from "../../styles/useIsMobile";
+
+import "../../styles/sheet.css";
+
 type FilterDropdownProps = {
   label: string;
   // Shown on the button while the filter is in use; null when it is not.
@@ -14,6 +18,9 @@ function FilterDropdown({ label, summary, onClear, children }: FilterDropdownPro
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
+  // On phones the panel fills the screen, so it carries its own title and
+  // close button.
+  const isMobile = useIsMobile();
 
   // Closes on a press anywhere outside, map included, and on Escape.
   useEffect(() => {
@@ -60,13 +67,29 @@ function FilterDropdown({ label, summary, onClear, children }: FilterDropdownPro
 
       {open && (
         <div id={panelId} className="filter-dropdown-panel">
-          {children}
-
-          {active && (
-            <button type="button" className="filter-dropdown-clear" onClick={onClear}>
-              Clear
-            </button>
+          {isMobile && (
+            <div className="sheet-header">
+              <h2 className="sheet-title">{label}</h2>
+              <button
+                type="button"
+                className="sheet-close"
+                aria-label={`Close ${label}`}
+                onClick={() => setOpen(false)}
+              >
+                ×
+              </button>
+            </div>
           )}
+
+          <div className="filter-dropdown-body">
+            {children}
+
+            {active && (
+              <button type="button" className="filter-dropdown-clear" onClick={onClear}>
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

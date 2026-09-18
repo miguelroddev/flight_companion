@@ -18,6 +18,7 @@ import {
   type RouteFilters,
 } from "../api/flights";
 import logo from "../assets/branding/logo.png";
+import { useIsMobile } from "../styles/useIsMobile";
 
 import "./MapPage.css";
 
@@ -185,6 +186,20 @@ function MapPage() {
   }, [currentItineraries, departureAirport, arrivalAirport]);
   const itineraryPath = openedIndex === null ? null : (itineraryPaths[openedIndex] ?? null);
 
+  // On phones the route panel fills the screen, so it can be closed to look
+  // at the map; the airports stay selected, and a button brings it back.
+  // Remembered per pair and filters, so a new selection opens it again.
+  const isMobile = useIsMobile();
+  const [closedPanel, setClosedPanel] = useState<{
+    key: string | null;
+    filters: RouteFilters;
+  } | null>(null);
+  const panelClosed =
+    isMobile && closedPanel?.key === routeKey && closedPanel.filters === filters;
+  const closePanel = isMobile
+    ? () => setClosedPanel({ key: routeKey, filters })
+    : undefined;
+
   const filtersActive =
     filters.alliances.length > 0 ||
     filters.airlines.length > 0 ||
@@ -249,15 +264,29 @@ function MapPage() {
           </p>
         )}
 
-        {departureAirport && arrivalAirport && selectedRoute && (
+        {departureAirport && arrivalAirport && selectedRoute && !panelClosed && (
           <RouteInfoPanel
             departureAirport={departureAirport}
             arrivalAirport={arrivalAirport}
             route={selectedRoute}
+            onClose={closePanel}
           />
         )}
 
-        {departureAirport && arrivalAirport && noDirectRoute && (
+        {departureAirport &&
+          arrivalAirport &&
+          panelClosed &&
+          (selectedRoute || noDirectRoute) && (
+            <button
+              type="button"
+              className="route-panel-reopen"
+              onClick={() => setClosedPanel(null)}
+            >
+              View route {departureAirport.iata} → {arrivalAirport.iata}
+            </button>
+          )}
+
+        {departureAirport && arrivalAirport && noDirectRoute && !panelClosed && (
           <ConnectionsPanel
             departureAirport={departureAirport}
             arrivalAirport={arrivalAirport}
@@ -271,6 +300,7 @@ function MapPage() {
                 index === null ? null : { result: currentItineraries, index },
               )
             }
+            onClose={closePanel}
           />
         )}
       </div>

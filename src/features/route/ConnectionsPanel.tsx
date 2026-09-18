@@ -13,6 +13,7 @@ import AirlineServices from "./AirlineServices";
 import { formatDuration } from "./formatDuration";
 import RoutePass from "./RoutePass";
 
+import "../../styles/sheet.css";
 import "./RouteInfoPanel.css";
 import "./ConnectionsPanel.css";
 
@@ -26,6 +27,8 @@ type ConnectionsPanelProps = {
   filtersActive: boolean;
   selectedIndex: number | null;
   onSelect: (index: number | null) => void;
+  // Given on phones, where the panel fills the screen and needs a way out.
+  onClose?: () => void;
 };
 
 function placeName(airport: Airport) {
@@ -132,6 +135,7 @@ function ConnectionsPanel({
   filtersActive,
   selectedIndex,
   onSelect,
+  onClose,
 }: ConnectionsPanelProps) {
   const distanceKm = Math.round(haversineDistanceKm(departureAirport, arrivalAirport));
   const itineraries = result?.itineraries ?? [];
@@ -151,6 +155,20 @@ function ConnectionsPanel({
 
   return (
     <section className="route-info-panel connections-panel" aria-label="Connections">
+      {onClose && (
+        <div className="sheet-header">
+          <h2 className="sheet-title">Connections</h2>
+          <button
+            type="button"
+            className="sheet-close"
+            aria-label="Close connections"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <RoutePass
         departure={departureAirport}
         arrival={arrivalAirport}

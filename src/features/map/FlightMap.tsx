@@ -54,26 +54,16 @@ const SELECTION_FIT_BOUNDS_PADDING = { top: 230, bottom: 120, left: 370, right: 
 
 // The paddings above are for the desktop layout, where the header floats over
 // the top of the map and the route panel over its left. On phones the header
-// sits above the map instead, and the panel is a card over the bottom of it,
-// up to 40% of the screen tall (MapPage.css).
-function fitPadding(
-  map: MapRef,
-  kind: "world" | "selection",
-  panelShown: boolean,
-) {
+// sits above the map instead, and the route panel is a full-screen page closed
+// back to the map (MapPage.css), so only a selected airport's label, ~36px
+// above its pin, needs room.
+function fitPadding(kind: "world" | "selection") {
   if (!isMobileLayout()) {
     return kind === "world" ? FIT_BOUNDS_PADDING : SELECTION_FIT_BOUNDS_PADDING;
   }
-  if (kind === "world") return { top: 24, bottom: 24, left: 16, right: 16 };
-
-  // A selected airport's label stands ~36px above its pin. The bottom clears
-  // the panel, capped so the two paddings never outgrow a short map, which
-  // maplibre would refuse to fit into.
-  const mapHeight = map.getContainer().clientHeight;
-  const bottom = panelShown
-    ? Math.min(Math.round(window.innerHeight * 0.4) + 16, Math.round(mapHeight * 0.55))
-    : 32;
-  return { top: 48, bottom, left: 24, right: 24 };
+  return kind === "world"
+    ? { top: 24, bottom: 24, left: 16, right: 16 }
+    : { top: 48, bottom: 32, left: 24, right: 24 };
 }
 
 // Every airport is drawn in one GPU circle layer rather than a DOM marker each:
@@ -429,7 +419,7 @@ function FlightMap({
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ],
-      { padding: fitPadding(map, "selection", true), duration: 1000 },
+      { padding: fitPadding("selection"), duration: 1000 },
     );
   }, [itineraryPath, itineraryOptions]);
 
@@ -461,7 +451,7 @@ function FlightMap({
           [west, south],
           [east, north],
         ],
-        { padding: fitPadding(map, "world", false), duration: CAMERA_DURATION },
+        { padding: fitPadding("world"), duration: CAMERA_DURATION },
       );
       return;
     }
@@ -490,7 +480,7 @@ function FlightMap({
         [Math.min(...unwrappedLngs), Math.min(...lats)],
         [Math.max(...unwrappedLngs), Math.max(...lats)],
       ],
-      { padding: fitPadding(map, "selection", bothSelected), duration: CAMERA_DURATION },
+      { padding: fitPadding("selection"), duration: CAMERA_DURATION },
     );
   }, [anchorAirport, airports, connectionsLoaded]);
 

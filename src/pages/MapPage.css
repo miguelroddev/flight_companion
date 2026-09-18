@@ -109,7 +109,7 @@
    above the map instead of floating over it. The overlay stops generating a
    box, so its children join the page's column and can be ordered around the
    map: brand, From, To, filters, then the map filling what is left. The
-   route panel becomes a card over the bottom of the map. */
+   route panel fills the screen instead, and can be closed back to the map. */
 @media (max-width: 760px) {
   .map-page {
     display: flex;
@@ -172,15 +172,43 @@
     font-size: 16px;
   }
 
+  /* The route and connections panels fill the screen, above the header,
+     with a close button of their own (the sheet header). */
   .map-overlay > .route-info-panel {
     position: fixed;
-    right: 8px;
-    bottom: 8px;
-    left: 8px;
-    z-index: 1;
+    inset: 0;
+    z-index: 20;
 
     width: auto;
     max-width: none;
-    max-height: 40dvh;
+    max-height: none;
+
+    border: 0;
+    border-radius: 0;
+
+    background: var(--logo-backdrop);
+    backdrop-filter: none;
+  }
+
+  .route-panel-reopen {
+    position: fixed;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 50%;
+    z-index: 5;
+
+    padding: 10px 18px;
+
+    border: 0;
+    border-radius: 999px;
+
+    color: #ffffff;
+    background: var(--route-selected);
+    box-shadow: 0 4px 14px rgb(15 35 50 / 30%);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transform: translateX(-50%);
   }
 }

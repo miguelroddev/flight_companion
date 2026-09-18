@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import type { Airport } from "../../api/flights";
+import { indexAirports, searchAirports } from "./airportSearch";
+
 import "./AirportSearchInput.css";
 
 type AirportSearchInputProps = {
@@ -10,6 +13,9 @@ type AirportSearchInputProps = {
   onClear: () => void;
 };
 
+// Shows the selected airport as a code chip and its name. Clicking in opens
+// an empty search in its place; picking nothing (a press outside, Escape,
+// tabbing away) puts the selected airport straight back, untouched.
 function AirportSearchInput({
   label,
   airports,
@@ -18,19 +24,30 @@ function AirportSearchInput({
   onClear,
 }: AirportSearchInputProps) {
   const [query, setQuery] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // The suggestions close on a press anywhere outside the search box and its
-  // list, map included, and on Escape, like the filter dropdowns.
+  const index = useMemo(() => indexAirports(airports), [airports]);
+  const suggestions = useMemo(() => searchAirports(index, query), [index, query]);
+
+  function stopEditing() {
+    setEditing(false);
+    setQuery("");
+  }
+
+  // A press outside the box and its suggestions ends the search, map
+  // included (maplibre can keep the input from losing focus), as does Escape.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!editing) return;
 
     function handlePointerDown(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+      if (!containerRef.current?.contains(event.target as Node)) stopEditing();
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsOpen(false);
+      if (event.key !== "Escape") return;
+      stopEditing();
+      inputRef.current?.blur();
     }
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -39,95 +56,97 @@ function AirportSearchInput({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
-
-  useEffect(() => {
-    setQuery(
-      selectedAirport ? `${selectedAirport.iata} - ${selectedAirport.city}` : "",
-    );
-  }, [selectedAirport]);
-
-  const normalizedQuery = query.trim().toLowerCase();
-
-  const matchingAirports =
-    normalizedQuery.length === 0
-      ? []
-      : airports
-          .filter((airport) => {
-            const searchableText =
-              `${airport.iata} ${airport.name} ${airport.city}`.toLowerCase();
-
-            return searchableText.includes(normalizedQuery);
-          })
-          .slice(0, 6); //takes only the first 6 airports
+  }, [editing]);
 
   function handleSelect(airport: Airport) {
     onSelect(airport);
-    setIsOpen(false);
+    stopEditing();
+    inputRef.current?.blur();
   }
 
-  function handleClear() {
-    onClear();
-    setIsOpen(false);
-  }
+  const showingSelection = selectedAirport !== null && !editing;
+  const place = selectedAirport ? selectedAirport.city || selectedAirport.name : "";
 
   return (
     <div className="airport-search" ref={containerRef}>
       <label className="airport-search-label">
-        <span>{label}</span>
+        <span className="airport-search-role">{label}</span>
 
         <input
+          ref={inputRef}
           type="search"
-          value={query}
-          placeholder={`${label} airport`}
+          value={showingSelection ? "" : query}
+          placeholder={
+            showingSelection ? "" : selectedAirport ? `Change ${place}…` : `${label} airport`
+          }
+          aria-label={
+            selectedAirport
+              ? `${label}: ${place} (${selectedAirport.iata}). Type to change it.`
+              : `${label} airport`
+          }
           autoComplete="off"
+          onFocus={() => setEditing(true)}
+          // Tabbing away; pointer presses outside are handled above.
+          onBlur={stopEditing}
           onChange={(event) => {
+            setEditing(true);
             setQuery(event.target.value);
-            setIsOpen(true);
           }}
-          onFocus={() => {
-            if (query.trim().length > 0) {
-              setIsOpen(true);
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && suggestions.length > 0) {
+              event.preventDefault();
+              handleSelect(suggestions[0]);
             }
           }}
         />
+
+        {showingSelection && (
+          <span className="airport-search-selection" aria-hidden="true">
+            <strong className="airport-search-selection-code">{selectedAirport.iata}</strong>
+            <span className="airport-search-selection-place">{place}</span>
+            {selectedAirport.city && (
+              <span className="airport-search-selection-name">{selectedAirport.name}</span>
+            )}
+          </span>
+        )}
       </label>
 
-      {selectedAirport && (
+      {showingSelection && (
         <button
           type="button"
           className="airport-search-clear"
-          onClick={handleClear}
+          onClick={() => {
+            onClear();
+            stopEditing();
+          }}
           aria-label={`Clear ${label.toLowerCase()} airport`}
         >
-          x
+          ×
         </button>
       )}
 
-      {isOpen && matchingAirports.length > 0 && (
+      {editing && suggestions.length > 0 && (
         <ul className="airport-suggestions">
-          {matchingAirports.map((airport) => (
+          {suggestions.map((airport) => (
             <li key={airport.iata}>
               <button
                 type="button"
-                onMouseDown={() => handleSelect(airport)}
+                // Before the input's blur, which would end the search first.
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  handleSelect(airport);
+                }}
               >
                 <span className="airport-code">{airport.iata}</span>
 
                 <span className="airport-description">
-                  <strong>{airport.city}</strong>
+                  <strong>{airport.city || airport.name}</strong>
                   <small>{airport.name}</small>
                 </span>
               </button>
             </li>
           ))}
         </ul>
-      )}
-
-      {selectedAirport && (
-        <span className="selected-airport-indicator">
-          Selected: {selectedAirport.iata}
-        </span>
       )}
     </div>
   );

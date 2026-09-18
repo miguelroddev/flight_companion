@@ -1,0 +1,58 @@
+/* The title row of a panel shown full screen on phones: its name, and an
+   × in the top-right corner that closes it. */
+.sheet-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px 16px;
+
+  border-bottom: 1px solid var(--panel-border);
+
+  background: var(--logo-backdrop);
+}
+
+.sheet-title {
+  margin: 0;
+
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: 1.2;
+}
+
+.sheet-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+
+  width: 36px;
+  height: 36px;
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  color: var(--text-primary);
+  background: var(--input-bg);
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet-close:hover {
+  background: var(--input-bg-hover);
+}
+
+.sheet-close:focus-visible {
+  outline: 2px solid var(--route-selected);
+  outline-offset: 2px;
+}

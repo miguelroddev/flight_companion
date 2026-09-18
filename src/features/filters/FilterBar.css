@@ -108,8 +108,13 @@
 
 /* text-align and line-height are set, not inherited: #root in index.css
    centres all text and sets a tall line height for the home page. */
+/* The z-index lifts it over the filter bar's other buttons: they are
+   positioned too, and without one, every button after this dropdown in the
+   bar paints on top of its panel, which shows once the panel fills the screen
+   on phones. */
 .filter-dropdown-panel {
   position: absolute;
+  z-index: 1;
   text-align: left;
   line-height: 1.3;
   top: calc(100% + 8px);
@@ -127,6 +132,11 @@
   background: var(--panel-bg);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 24px rgb(15 35 50 / 14%);
+}
+
+.filter-dropdown-body {
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-dropdown-option {
@@ -531,8 +541,8 @@
 }
 
 /* Phones (MOBILE_MEDIA_QUERY in src/styles/breakpoints.ts): one row that
-   scrolls sideways, and dropdowns that open as sheets from the bottom of the
-   screen, since a scrolling row would clip anything hanging below it. */
+   scrolls sideways, and dropdowns that open full screen, which also keeps a
+   scrolling row from clipping anything hanging below it. */
 @media (max-width: 760px) {
   .filter-bar {
     order: 2;
@@ -543,7 +553,7 @@
     overflow-x: auto;
 
     /* A backdrop filter would make the bar the containing block of the fixed
-       sheets below, trapping them inside its scrolling box. */
+       full-screen panels below, trapping them inside its scrolling box. */
     backdrop-filter: none;
     background: var(--logo-backdrop);
     scrollbar-width: none;
@@ -557,23 +567,40 @@
     flex-shrink: 0;
   }
 
+  /* An open dropdown fills the screen, above even the navbar, which
+     otherwise sits over this bar so its search suggestions can drop across
+     it. */
+  .filter-bar:has(.filter-dropdown-panel) {
+    z-index: 4;
+  }
+
   .filter-dropdown-panel {
     position: fixed;
-    top: auto;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
 
-    max-height: 70dvh;
-    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+    min-width: 0;
+    padding: 0;
     overflow-y: auto;
 
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -8px 24px rgb(15 35 50 / 18%);
+    border: 0;
+    border-radius: 0;
+
+    background: var(--logo-backdrop);
+    box-shadow: none;
+  }
+
+  .filter-dropdown-body {
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   }
 
   .airline-picker,
   .range-filter {
     width: auto;
+  }
+
+  /* With the whole screen to use, the airline list needs no scroll box of
+     its own: the page scrolls. */
+  .airline-picker-list {
+    max-height: none;
   }
 }

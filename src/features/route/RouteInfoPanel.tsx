@@ -4,20 +4,42 @@ import AirlineServices from "./AirlineServices";
 import { formatDuration } from "./formatDuration";
 import RoutePass from "./RoutePass";
 
+import "../../styles/sheet.css";
 import "./RouteInfoPanel.css";
 
 type RouteInfoPanelProps = {
   departureAirport: Airport;
   arrivalAirport: Airport;
   route: Route;
+  // Given on phones, where the panel fills the screen and needs a way out.
+  onClose?: () => void;
 };
 
-function RouteInfoPanel({ departureAirport, arrivalAirport, route }: RouteInfoPanelProps) {
+function RouteInfoPanel({
+  departureAirport,
+  arrivalAirport,
+  route,
+  onClose,
+}: RouteInfoPanelProps) {
   const distanceKm = Math.round(haversineDistanceKm(departureAirport, arrivalAirport));
   const count = route.services.length;
 
   return (
     <section className="route-info-panel" aria-label="Route details">
+      {onClose && (
+        <div className="sheet-header">
+          <h2 className="sheet-title">Route details</h2>
+          <button
+            type="button"
+            className="sheet-close"
+            aria-label="Close route details"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <RoutePass
         departure={departureAirport}
         arrival={arrivalAirport}
