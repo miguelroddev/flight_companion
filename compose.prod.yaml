@@ -1,6 +1,10 @@
 # Production stack for the EC2 box: Postgres, the FastAPI backend, and nginx
 # serving the built frontend and proxying /api to the backend.
 #
+# Ports 80/443 and HTTPS belong to the shared Caddy proxy (the "edge" network,
+# see the outrora repo's deploy/edge). The web container joins that network as
+# "flight-web" and only speaks plain HTTP inside Docker.
+#
 # Unlike compose.yaml (development) nothing here mounts source, nothing reloads,
 # and neither the database nor the backend publishes a port to the host: they
 # are reachable only from inside this network, via nginx.
@@ -37,14 +41,18 @@ services:
   web:
     build:
       context: .
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      default:
+      edge:
+        aliases:
+          - flight-web
+
+networks:
+  edge:
+    external: true
 
 volumes:
   db_data:
