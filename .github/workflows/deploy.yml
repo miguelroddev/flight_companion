@@ -1,7 +1,18 @@
 name: Deploy to EC2
 
 on:
+  # Every push to main ships, merged pull requests included.
+  push:
+    branches: [main]
+  # Kept for redeploying by hand from the Actions tab, without a new commit.
   workflow_dispatch:
+
+# One deploy at a time: a second push waits for the first to finish rather
+# than rebuilding on the box at the same time. Never cancelled midway, which
+# could leave the stack half restarted.
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
 
 jobs:
   deploy:
