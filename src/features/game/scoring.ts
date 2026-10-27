@@ -3,7 +3,8 @@ import type { Difficulty, GamePuzzle, GameRoute } from "../../api/flights";
 // Mirrors backend/app/route_game.py, which does the scoring itself; these are
 // only for telling the player the rules.
 export const PERFECT_SCORE = 1000;
-export const FLIGHT_COST_KM = 300;
+// Off the route's score for every flight more than the best route takes.
+export const FLIGHT_PENALTY = 150;
 
 // Played without hints, each flight tried that does not exist costs this
 // much off the route's score.
@@ -32,8 +33,9 @@ export function finalScore(routeScore: number, misses: number): number {
 // Stars and verdict judge the route alone, never the misses: they say how
 // good the route found was, the points how cleanly it was found.
 // 3 for the best route, 2 for a route within reach of it, 1 for getting there.
-// 850 is a route costing up to ~18% more than the best: a fair detour still
-// earns two, so one star means a clearly roundabout way.
+// 850 is the best number of flights at up to ~18% more distance, or one
+// flight more at no extra distance: a fair detour still earns two, so one
+// star means a clearly roundabout way.
 export const TWO_STAR_SCORE = 850;
 
 export function starCount(routeScore: number): number {
@@ -55,7 +57,8 @@ function plural(count: number, word: string): string {
 }
 
 // One sentence on where the route lost to the best one, in the game's own
-// terms: flights and kilometres.
+// terms: flights first, then kilometres. The best route never takes more
+// flights than the player's.
 export function comparison(route: GameRoute, best: GameRoute, routeScore: number): string {
   const sameAirports =
     route.airports.map((airport) => airport.iata).join() ===
@@ -67,12 +70,12 @@ export function comparison(route: GameRoute, best: GameRoute, routeScore: number
   const extraKm = route.totalKm - best.totalKm;
   const longer = `${formatKm(Math.abs(extraKm))} ${extraKm >= 0 ? "longer" : "shorter"}`;
 
-  if (extraFlights === 0) return `Same number of flights as the best route, but ${longer}.`;
-  if (extraFlights > 0 && extraKm < 0) {
-    return `${longer}, but ${plural(extraFlights, "flight")} more, and each costs ${FLIGHT_COST_KM} km.`;
+  if (extraFlights <= 0) return `Same number of flights as the best route, but ${longer}.`;
+  const more = plural(extraFlights, "flight");
+  if (extraKm <= 0) {
+    return `${extraKm < 0 ? `${longer}, but` : "As far, but"} ${more} more: the fewest flights always wins.`;
   }
-  if (extraFlights > 0) return `${plural(extraFlights, "flight")} more and ${longer} than the best route.`;
-  return `${plural(-extraFlights, "flight")} fewer, but ${longer} than the best route.`;
+  return `${more} more and ${longer} than the best route.`;
 }
 
 // "Oct 27", for a UTC date (YYYY-MM-DD) or today.

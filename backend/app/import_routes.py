@@ -19,6 +19,16 @@ from app.models import Airline, Airport, Route
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "airline_routes.json"
 
+# Airport pairs the scrape has routes between that no airline flies, checked
+# by hand. Dropped in both directions on every import. Migration 0006 removed
+# the ones imported before they were listed here; list a new pair in a new
+# migration too, or the live data keeps it until the next re-import.
+BOGUS_ROUTES = {
+    # Karshi, Uzbekistan to Resende, a small airfield in Brazil: a 19-hour
+    # "Uzbekistan Airways" flight that does not exist.
+    frozenset({"KSQ", "REZ"}),
+}
+
 
 def parse_coordinate(value: object) -> float | None:
     """The scrape occasionally yields null, or a stray trailing comma."""
@@ -73,6 +83,8 @@ def collect_routes(
         for route in source.get("routes") or []:
             destination_iata = route.get("iata")
             if destination_iata == source_iata or destination_iata not in airports:
+                continue
+            if frozenset({source_iata, destination_iata}) in BOGUS_ROUTES:
                 continue
 
             duration = route.get("min")

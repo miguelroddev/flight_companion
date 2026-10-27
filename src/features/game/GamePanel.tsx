@@ -11,7 +11,7 @@ import {
   DIFFICULTIES,
   difficultyLabel,
   difficultyLevel,
-  FLIGHT_COST_KM,
+  FLIGHT_PENALTY,
   finalScore,
   flightCount,
   formatKm,
@@ -227,8 +227,9 @@ export function GameSetup({ settings, onChange, onDaily, onRandom, loading, erro
             <li>
               <Icon name="flight" />
               <span>
-                The best route has the lowest cost: its distance, plus {FLIGHT_COST_KM} km for
-                every flight. Your route scores up to {PERFECT_SCORE} by how close it comes.
+                The best route takes the fewest flights, then the shortest distance. Your
+                route scores up to {PERFECT_SCORE}: every extra flight takes {FLIGHT_PENALTY} points
+                off, and extra distance takes some off in proportion.
               </span>
             </li>
             <li>
@@ -670,7 +671,7 @@ export function GameOver({ puzzle, ending, misses, onNewGame, onChangeSettings }
             />
           )}
           <p className="game-footnote">
-            The best route has the lowest cost: distance plus {FLIGHT_COST_KM} km per flight.{" "}
+            The best route takes the fewest flights, then the shortest distance.{" "}
             {STAR_RULES}
           </p>
         </div>

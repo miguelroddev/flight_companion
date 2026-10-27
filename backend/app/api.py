@@ -432,5 +432,5 @@ def score_game_route(
     return GameResultOut(
         route=game_route(graph, path),
         best=game_route(graph, best),
-        score=score(graph.cost(best), graph.cost(path)),
+        score=score(graph.measure(best), graph.measure(path)),
     )

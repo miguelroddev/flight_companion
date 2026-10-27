@@ -99,7 +99,7 @@ Planned infrastructure:
 ### Route Game
 
 * A game at `/play`: fly between two airports with no direct flight, one leg at a time on the map, and score up to 1000 against the best route.
-* The best route is the shortest by distance plus 300 km per flight, found with Dijkstra over the whole route network (`backend/app/route_game.py`).
+* The best route takes the fewest flights, and of those the shortest distance, found with Dijkstra over the whole route network (`backend/app/route_game.py`). Each flight more than the best route takes costs 150 points; extra distance costs points in proportion.
 * Easy, medium and hard puzzles, a daily route shared by everyone, and an optional no-hints mode where flights that don't exist cost points.
 * `/play?difficulty=medium&seed=123` replays a given puzzle, which is what shared results link to.
 

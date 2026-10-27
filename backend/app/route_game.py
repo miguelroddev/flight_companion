@@ -1,10 +1,10 @@
 """The route game: fly from one airport to another with no direct flight
 between them, one leg at a time, and be scored against the best route there is.
 
-The best route is the cheapest by a cost of its distance plus a fixed charge
-for every flight taken. Distance alone would reward hopping between nearby
-airports along the great circle; flights alone would ignore a long detour.
-The charge stands in for the time and hassle of each extra connection.
+The best route is the one with the fewest flights, and of those the shortest
+by distance. Flights come first: every extra connection is time and hassle
+that a shorter way cannot make up for, so distance only settles between
+routes with as many flights.
 
 Pure logic over an in-memory network, so it needs no database to run.
 """
@@ -15,16 +15,20 @@ from collections import deque
 from dataclasses import dataclass
 from app.schemas import AirportOut, Difficulty
 
-# What each flight costs on top of its distance. A detour of up to this many
-# km beats an extra connection.
-FLIGHT_COST_KM = 300
+# What routes are compared by: (flights, km). Tuples compare in order, so
+# fewer flights always wins and distance only breaks a tie.
+Measure = tuple[int, int]
+
+# Taken off the score for every flight more than the best route takes.
+FLIGHT_PENALTY = 150
 
 # Longest route a player may fly, and so the longest puzzle there can be.
 MAX_FLIGHTS = 6
 
-# Routes within this fraction of the best one's cost count as the best: two
-# routes can differ by a few km through neighbouring hubs, and rounding the
-# distances to whole km should never cost a perfect score.
+# Routes with as many flights as the best one, and within this fraction of
+# its distance, count as the best: two routes can differ by a few km through
+# neighbouring hubs, and rounding the distances to whole km should never cost
+# a perfect score.
 PERFECT_MARGIN = 0.005
 
 PERFECT_SCORE = 1000
@@ -77,35 +81,35 @@ class RouteGraph:
         """The distance of the flight, or None when there is no such flight."""
         return self.legs.get(source, {}).get(destination)
 
-    def cost(self, path: list[str]) -> int:
-        """Of a route known to be flyable."""
-        return sum(
-            self.legs[source][destination] + FLIGHT_COST_KM
-            for source, destination in zip(path, path[1:])
-        )
+    def measure(self, path: list[str]) -> Measure:
+        """The flights and km of a route known to be flyable."""
+        km = sum(self.legs[source][destination] for source, destination in zip(path, path[1:]))
+        return len(path) - 1, km
 
     def best_route(self, departure: str, arrival: str) -> list[str] | None:
-        """The cheapest route as IATA codes, ends included, by Dijkstra.
+        """The best route as IATA codes, ends included: the fewest flights,
+        then the shortest distance. Dijkstra over (flights, km), which add up
+        leg by leg and compare in that order.
         None when the arrival cannot be reached at all.
 
-        Equal costs are settled by the codes along the way, so the answer
+        Equal routes are settled by the codes along the way, so the answer
         never changes between calls.
         """
-        best_cost = {departure: 0}
+        best: dict[str, Measure] = {departure: (0, 0)}
         previous: dict[str, str] = {}
-        queue = [(0, departure)]
+        queue: list[tuple[int, int, str]] = [(0, 0, departure)]
         while queue:
-            cost, airport = heapq.heappop(queue)
+            flights, km, airport = heapq.heappop(queue)
             if airport == arrival:
                 break
-            if cost > best_cost[airport]:
+            if (flights, km) > best[airport]:
                 continue
-            for destination, km in self.legs.get(airport, {}).items():
-                next_cost = cost + km + FLIGHT_COST_KM
-                if next_cost < best_cost.get(destination, math.inf):
-                    best_cost[destination] = next_cost
+            for destination, leg_km in self.legs.get(airport, {}).items():
+                reached = (flights + 1, km + leg_km)
+                if destination not in best or reached < best[destination]:
+                    best[destination] = reached
                     previous[destination] = airport
-                    heapq.heappush(queue, (next_cost, destination))
+                    heapq.heappush(queue, (*reached, destination))
         else:
             return None
 
@@ -161,8 +165,19 @@ class RouteGraph:
         raise LookupError(f"No {difficulty} puzzle fits this network")
 
 
-def score(best_cost: int, cost: int) -> int:
-    """Out of PERFECT_SCORE, in proportion to how close the cost came."""
-    if cost <= best_cost * (1 + PERFECT_MARGIN):
-        return PERFECT_SCORE
-    return round(PERFECT_SCORE * best_cost / cost)
+def score(best: Measure, route: Measure) -> int:
+    """Out of PERFECT_SCORE: in proportion to how close the distance came,
+    less FLIGHT_PENALTY for every flight more than the best route takes.
+
+    A route with more flights can be shorter than the best one, but being
+    shorter never makes up for a flight: its distance then scores in full,
+    and the extra flights still cost what they cost.
+    """
+    best_flights, best_km = best
+    flights, km = route
+    if km <= best_km * (1 + PERFECT_MARGIN):
+        distance_score = PERFECT_SCORE
+    else:
+        distance_score = round(PERFECT_SCORE * best_km / km)
+    extra_flights = max(0, flights - best_flights)
+    return max(0, distance_score - extra_flights * FLIGHT_PENALTY)
