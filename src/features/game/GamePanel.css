@@ -1,0 +1,1393 @@
+/* The route game's panel: a boarding-pass header in deep navy over a white
+   body of cards. Colours come from tokens.css; the departure light blue and
+   arrival navy are the map's end pins. */
+.game-panel {
+  --game-ink: var(--text-primary);
+  --game-soft: #f3f6f9;
+  --game-line: rgb(15 35 50 / 10%);
+  --game-gold: #f5b301;
+  --game-radius: 18px;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+
+  border-radius: var(--game-radius);
+
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgb(15 35 50 / 8%),
+    0 24px 48px -20px rgb(15 35 50 / 45%),
+    0 6px 16px -8px rgb(15 35 50 / 20%);
+  color: var(--game-ink);
+  /* Set, not inherited: #root in index.css centres text and sets a tall line
+     height for the home page. */
+  line-height: 1.35;
+  text-align: left;
+}
+
+.game-panel > * {
+  flex-shrink: 0;
+}
+
+.game-icon {
+  flex: none;
+
+  width: 1.15em;
+  height: 1.15em;
+
+  fill: currentColor;
+}
+
+/* ---- The ticket: navy, with a glow of the departure blue ---- */
+
+.game-ticket {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 16px 18px 18px;
+
+  border-radius: var(--game-radius) var(--game-radius) 0 0;
+
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgb(63 186 244 / 38%), transparent 60%),
+    linear-gradient(150deg, #0b1830 0%, var(--game-arrival) 55%, var(--route-selected) 100%);
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* A faint flight path across the ticket. */
+.game-ticket::after {
+  position: absolute;
+  right: -30px;
+  bottom: -60px;
+
+  width: 220px;
+  height: 140px;
+
+  border: 1.5px dashed rgb(255 255 255 / 12%);
+  border-radius: 50%;
+
+  content: "";
+  pointer-events: none;
+}
+
+.game-ticket-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.game-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 4px 9px;
+
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+
+  background: rgb(255 255 255 / 10%);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.game-chip .game-icon {
+  width: 13px;
+  height: 13px;
+
+  opacity: 0.85;
+}
+
+.game-ticket-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 1.1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+
+.game-ticket-end {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  min-width: 0;
+}
+
+.game-ticket-end--to {
+  align-items: flex-end;
+
+  text-align: right;
+}
+
+.game-ticket-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  color: rgb(255 255 255 / 70%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Outlined in white: the arrival pin is the ticket's own navy. */
+.game-ticket-role img {
+  width: 14px;
+  height: 14px;
+
+  filter: drop-shadow(0 0 0.6px #ffffff) drop-shadow(0 0 0.6px #ffffff);
+}
+
+.game-ticket-code {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.game-ticket-place {
+  max-width: 100%;
+  overflow: hidden;
+
+  color: rgb(255 255 255 / 72%);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-ticket-path {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding-bottom: 2px;
+}
+
+.game-ticket-arc {
+  width: 100%;
+  height: 30px;
+  overflow: visible;
+}
+
+.game-ticket-arc path {
+  fill: none;
+  stroke: rgb(255 255 255 / 45%);
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+/* At the top of the arc, turned to fly along it. */
+.game-ticket-plane {
+  position: absolute;
+  top: 0;
+  left: 50%;
+
+  width: 18px;
+  height: 18px;
+
+  fill: #ffffff;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
+  transform: translate(-50%, -3px) rotate(90deg);
+}
+
+.game-ticket-distance {
+  margin-top: 2px;
+
+  color: rgb(255 255 255 / 80%);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The setup's version of the ticket: a title in place of the route. */
+.game-intro {
+  gap: 8px;
+}
+
+.game-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  color: var(--game-departure);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.game-eyebrow .game-icon {
+  transform: rotate(45deg);
+}
+
+.game-intro-title {
+  margin: 0;
+
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.game-intro-text {
+  color: rgb(255 255 255 / 75%);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ---- The body ---- */
+
+.game-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 16px 16px 18px;
+}
+
+.game-label {
+  margin: 0 0 8px;
+
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.game-hint {
+  margin: -4px 0 0;
+
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.game-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 0;
+  padding: 9px 12px;
+
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  border-radius: 10px;
+
+  background: color-mix(in srgb, var(--danger) 8%, #ffffff);
+  color: var(--danger);
+  font-size: 12.5px;
+  font-weight: 500;
+
+  animation: game-shake 360ms ease;
+}
+
+@keyframes game-shake {
+  25% {
+    transform: translateX(-4px);
+  }
+
+  50% {
+    transform: translateX(4px);
+  }
+
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+/* ---- Setup: difficulty cards, hints switch, start buttons ---- */
+
+.game-levels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.game-level {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  padding: 10px 10px 9px;
+
+  border: 1.5px solid var(--game-line);
+  border-radius: 12px;
+
+  color: var(--game-ink);
+  background: #ffffff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.game-level:hover {
+  border-color: rgb(27 52 128 / 35%);
+  transform: translateY(-1px);
+}
+
+.game-level[aria-checked="true"] {
+  border-color: var(--route-selected);
+  background: linear-gradient(180deg, rgb(27 52 128 / 6%), rgb(27 52 128 / 0%));
+  box-shadow: 0 0 0 3px rgb(27 52 128 / 12%);
+}
+
+.game-level strong {
+  margin-top: 4px;
+
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.game-level small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.game-level-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+
+  height: 12px;
+}
+
+.game-level-bars span {
+  width: 4px;
+
+  border-radius: 1px;
+
+  background: currentColor;
+  opacity: 0.25;
+}
+
+.game-level-bars span:nth-child(1) {
+  height: 5px;
+}
+
+.game-level-bars span:nth-child(2) {
+  height: 8px;
+}
+
+.game-level-bars span:nth-child(3) {
+  height: 12px;
+}
+
+.game-level-bars .is-on {
+  opacity: 1;
+}
+
+.game-level .game-level-bars {
+  color: var(--route-selected);
+}
+
+.game-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 10px 12px;
+
+  border-radius: 12px;
+
+  background: var(--game-soft);
+  cursor: pointer;
+}
+
+.game-switch-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+
+  width: 32px;
+  height: 32px;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: var(--game-gold);
+  box-shadow: 0 1px 2px rgb(15 35 50 / 12%);
+}
+
+.game-switch-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+
+  min-width: 0;
+}
+
+.game-switch-text strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.game-switch-text small {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+/* A switch drawn from the checkbox itself, so it keeps native behaviour. */
+.game-switch {
+  position: relative;
+  flex: none;
+
+  width: 40px;
+  height: 24px;
+  margin: 0;
+
+  border-radius: 999px;
+
+  background: #c7d2db;
+  cursor: pointer;
+  transition: background 180ms ease;
+  appearance: none;
+}
+
+.game-switch::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+
+  width: 18px;
+  height: 18px;
+
+  border-radius: 50%;
+
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  content: "";
+  transition: transform 180ms ease;
+}
+
+.game-switch:checked {
+  background: var(--route-selected);
+}
+
+.game-switch:checked::after {
+  transform: translateX(16px);
+}
+
+.game-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-start {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 10px 14px 10px 10px;
+
+  border: 1.5px solid var(--game-line);
+  border-radius: 14px;
+
+  color: var(--game-ink);
+  background: #ffffff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+
+.game-start:hover:not(:disabled) {
+  border-color: rgb(27 52 128 / 30%);
+  box-shadow: 0 8px 18px -10px rgb(15 35 50 / 40%);
+  transform: translateY(-1px);
+}
+
+.game-start:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.game-start-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+
+  width: 40px;
+  height: 40px;
+
+  border-radius: 11px;
+
+  background: var(--game-soft);
+  color: var(--route-selected);
+}
+
+.game-start-icon .game-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.game-start-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.game-start-text strong {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.game-start-text small {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.game-start-arrow {
+  opacity: 0.45;
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease;
+}
+
+.game-start:hover .game-start-arrow {
+  opacity: 0.9;
+  transform: translateX(3px);
+}
+
+.game-start--primary {
+  border-color: transparent;
+
+  background: linear-gradient(135deg, var(--route-selected), var(--game-arrival));
+  color: #ffffff;
+  box-shadow: 0 10px 22px -12px rgb(27 52 128 / 75%);
+}
+
+.game-start--primary:hover:not(:disabled) {
+  border-color: transparent;
+  box-shadow: 0 14px 26px -12px rgb(27 52 128 / 85%);
+}
+
+.game-start--primary .game-start-icon {
+  background: rgb(255 255 255 / 14%);
+  color: #ffffff;
+}
+
+.game-start--primary .game-start-text small {
+  color: rgb(255 255 255 / 72%);
+}
+
+.game-rules {
+  border-top: 1px solid var(--game-line);
+
+  font-size: 12px;
+}
+
+.game-rules summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding-top: 12px;
+
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.game-rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.game-rules summary::after {
+  margin-left: auto;
+
+  color: var(--text-muted);
+  content: "+";
+  font-size: 16px;
+  line-height: 1;
+}
+
+.game-rules[open] summary::after {
+  content: "−";
+}
+
+.game-rules ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin: 10px 0 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.game-rules li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.game-rules li .game-icon {
+  margin-top: 1px;
+
+  color: var(--route-selected);
+}
+
+/* ---- Playing: status, timeline, tools ---- */
+
+.game-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-status-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The map's "you're here" ring, in small. */
+.game-status-dot {
+  position: relative;
+  flex: none;
+
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  background: var(--game-here);
+}
+
+.game-status-dot::after {
+  position: absolute;
+  inset: -4px;
+
+  border: 2px solid var(--game-here);
+  border-radius: 50%;
+
+  animation: game-here-pulse 1.6s ease-out infinite;
+  content: "";
+}
+
+.game-status-dot.is-landed {
+  background: var(--route-best);
+}
+
+.game-status-dot.is-landed::after {
+  border-color: var(--route-best);
+}
+
+.game-status-title {
+  flex: 1 1 auto;
+  min-width: 0;
+
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.game-meter {
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+}
+
+.game-meter-slot {
+  display: grid;
+  place-items: center;
+
+  width: 15px;
+  height: 15px;
+
+  border: 1.5px dashed #c3ced5;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.game-meter-slot.is-used {
+  border: 0;
+
+  background: var(--route-selected);
+  color: #ffffff;
+}
+
+.game-meter-slot .game-icon {
+  width: 10px;
+  height: 10px;
+
+  transform: rotate(45deg);
+}
+
+.game-progress {
+  height: 8px;
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: var(--game-soft);
+  box-shadow: inset 0 0 0 1px var(--game-line);
+}
+
+.game-progress-fill {
+  display: block;
+
+  height: 100%;
+  min-width: 8px;
+
+  border-radius: inherit;
+
+  background: linear-gradient(90deg, var(--game-departure), var(--route-selected));
+  transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.game-status-sub {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-card {
+  padding: 12px 14px;
+
+  border: 1px solid var(--game-line);
+  border-radius: 14px;
+
+  background: #ffffff;
+}
+
+.game-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.game-card-stat {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The route so far: dots down a rail, each stop one row. */
+.game-timeline {
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.game-stop {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  height: 32px;
+  padding-left: 22px;
+}
+
+/* The rail from the stop above down to this one. */
+.game-stop + .game-stop::before {
+  position: absolute;
+  top: -16px;
+  left: 6px;
+
+  height: 32px;
+
+  border-left: 2px solid var(--route-selected);
+  content: "";
+}
+
+.game-stop--pending::before {
+  border-left-style: dashed !important;
+  border-left-color: #b8c4cd !important;
+}
+
+.game-stop-dot {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+
+  border: 3px solid var(--route-selected);
+  border-radius: 50%;
+
+  background: #ffffff;
+  transform: translateY(-50%);
+}
+
+.game-stop--from .game-stop-dot {
+  border-color: var(--game-departure);
+  background: var(--game-departure);
+}
+
+.game-stop--here .game-stop-dot {
+  border-color: var(--game-here);
+  box-shadow: 0 0 0 4px rgb(249 115 22 / 20%);
+}
+
+.game-stop--to .game-stop-dot {
+  border-color: var(--game-arrival);
+  background: var(--game-arrival);
+}
+
+.game-stop--pending .game-stop-dot {
+  border-style: dashed;
+  border-color: #9fb0bd;
+  background: #ffffff;
+}
+
+.game-stop-name {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 8px;
+
+  min-width: 0;
+  overflow: hidden;
+
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-stop-name strong {
+  color: var(--game-ink);
+  font-size: 13.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.game-stop--pending .game-stop-name,
+.game-stop--pending .game-stop-name strong {
+  color: var(--text-muted);
+}
+
+.game-stop-km {
+  flex: none;
+
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-misses {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  margin: 8px 0 0;
+  padding-top: 8px;
+
+  border-top: 1px dashed var(--game-line);
+
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.game-misses span {
+  margin-left: auto;
+
+  font-variant-numeric: tabular-nums;
+}
+
+.game-toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.game-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 9px 8px;
+
+  border: 0;
+  border-radius: 10px;
+
+  color: var(--game-ink);
+  background: var(--game-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+
+  transition: background 150ms ease;
+}
+
+.game-tool:hover:not(:disabled) {
+  background: #e7edf2;
+}
+
+.game-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.game-tool--quiet {
+  color: var(--text-secondary);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--game-line);
+}
+
+.game-tool--quiet:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 6%, #ffffff);
+}
+
+/* ---- Buttons shared by play and result ---- */
+
+.game-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  width: 100%;
+  padding: 11px 14px;
+
+  border: 1.5px solid var(--game-line);
+  border-radius: 12px;
+
+  color: var(--game-ink);
+  background: #ffffff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.game-button:hover:not(:disabled) {
+  background: var(--game-soft);
+}
+
+.game-button--primary {
+  border-color: transparent;
+
+  background: linear-gradient(135deg, var(--route-selected), var(--game-arrival));
+  color: #ffffff;
+  box-shadow: 0 10px 22px -12px rgb(27 52 128 / 75%);
+}
+
+.game-button--primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--route-selected), var(--game-arrival));
+  box-shadow: 0 14px 26px -12px rgb(27 52 128 / 85%);
+  transform: translateY(-1px);
+}
+
+.game-cta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ---- Result: stars, verdict, ring, routes ---- */
+
+.game-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  text-align: center;
+}
+
+.game-stars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+
+  margin: 0;
+}
+
+.game-star {
+  display: grid;
+
+  color: #d5dde4;
+
+  animation: game-star-pop 420ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+.game-star .game-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.game-star:nth-child(2) .game-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.game-star.is-on {
+  color: var(--game-gold);
+  filter: drop-shadow(0 2px 4px rgb(245 179 1 / 45%));
+}
+
+@keyframes game-star-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3) rotate(-30deg);
+  }
+}
+
+.game-verdict {
+  margin: 2px 0 0;
+
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Under the stars and verdict, which it explains: they rate this number,
+   not the points in the ring below. */
+.game-route-score {
+  margin: 0;
+
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-ring {
+  position: relative;
+
+  width: 132px;
+  height: 132px;
+  margin: 8px 0 4px;
+}
+
+.game-ring svg {
+  width: 100%;
+  height: 100%;
+
+  transform: rotate(-90deg);
+}
+
+.game-ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.game-ring-track {
+  stroke: var(--game-soft);
+}
+
+.game-ring-fill {
+  stroke-linecap: round;
+}
+
+.game-ring-value {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+}
+
+.game-ring-value strong {
+  color: var(--route-selected-ink);
+  font-size: 36px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.game-ring-value small {
+  margin-top: 2px;
+
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.game-comparison {
+  max-width: 290px;
+  margin: 2px 0 0;
+
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.game-result-icon {
+  display: grid;
+  place-items: center;
+
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+
+  border-radius: 50%;
+
+  background: var(--game-soft);
+  color: var(--text-secondary);
+}
+
+.game-result-icon .game-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Route score, misses, points: shown only when misses changed the total. */
+.game-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  box-sizing: border-box;
+
+  border-radius: 12px;
+
+  background: var(--game-soft);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.game-breakdown div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.game-breakdown dt {
+  color: var(--text-secondary);
+}
+
+.game-breakdown dd {
+  margin: 0;
+
+  font-weight: 650;
+}
+
+.game-breakdown-total {
+  margin-top: 2px;
+  padding-top: 6px;
+
+  border-top: 1px solid var(--game-line);
+}
+
+.game-breakdown-total dt,
+.game-breakdown-total dd {
+  color: var(--game-ink);
+  font-weight: 800;
+}
+
+.game-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.game-route {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  padding: 10px 12px;
+
+  border: 1px solid var(--game-line);
+  border-radius: 12px;
+
+  background: #ffffff;
+}
+
+.game-route-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.game-route-tag {
+  padding: 3px 8px;
+
+  border-radius: 999px;
+
+  background: var(--route-selected);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.game-route--best .game-route-tag {
+  background: var(--route-best);
+}
+
+.game-route-stats {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The codes as chips on a line: solid navy for yours, dashed green for the
+   best, as on the map. */
+.game-route-codes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.game-route-codes li {
+  position: relative;
+
+  padding: 3px 8px;
+
+  border: 1.5px solid var(--game-line);
+  border-radius: 8px;
+
+  color: var(--game-ink);
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+}
+
+.game-route-codes li + li::before {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+
+  width: 14px;
+
+  border-top: 2px solid var(--route-selected);
+  content: "";
+}
+
+.game-route--best .game-route-codes li + li::before {
+  border-top-style: dashed;
+  border-top-color: var(--route-best);
+}
+
+/* A stop the other route does not share: where the two part ways. */
+.game-route-codes li.is-different {
+  border-color: transparent;
+
+  background: var(--route-selected);
+  color: #ffffff;
+}
+
+.game-route--best .game-route-codes li.is-different {
+  background: var(--route-best);
+}
+
+.game-footnote {
+  margin: 0;
+
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* ---- The airport search, inside the panel ---- */
+
+.game-panel .airport-search {
+  width: 100%;
+}
+
+/* In the flow rather than floating: the panel scrolls, and would clip a
+   dropdown hanging out of it. */
+.game-panel .airport-suggestions {
+  position: static;
+
+  margin-top: 6px;
+}
+
+/* ---- Focus and motion ---- */
+
+.game-level:focus-visible,
+.game-start:focus-visible,
+.game-button:focus-visible,
+.game-tool:focus-visible,
+.game-switch:focus-visible,
+.game-rules summary:focus-visible {
+  outline: 2px solid var(--game-departure);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-alert,
+  .game-star,
+  .game-status-dot::after {
+    animation: none;
+  }
+
+  .game-progress-fill {
+    transition: none;
+  }
+}

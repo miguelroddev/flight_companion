@@ -23,6 +23,9 @@ function HomePage() {
           <Link className="enter-button" to="/map">
             Enter Here
           </Link>
+          <Link className="enter-button enter-button--secondary" to="/play">
+            Play the route game
+          </Link>
         </section>
 
         <section id="next-steps">

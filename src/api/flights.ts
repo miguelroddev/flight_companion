@@ -204,3 +204,60 @@ export async function fetchRoute(
     throw error;
   }
 }
+
+export type Difficulty = "easy" | "medium" | "hard";
+
+// A route game: get from departure to arrival, which have no direct flight.
+export type GamePuzzle = {
+  difficulty: Difficulty;
+  // Asking again with this seed and difficulty gives the same puzzle
+  seed: number;
+  // The day (YYYY-MM-DD, UTC) it is the daily puzzle of, or null
+  daily: string | null;
+  departure: Airport;
+  arrival: Airport;
+  maxFlights: number;
+};
+
+export type GameRoute = {
+  // In flying order, departure and arrival included
+  airports: Airport[];
+  // The distance of each flight: one fewer than there are airports
+  legKm: number[];
+  totalKm: number;
+};
+
+export type GameResult = {
+  route: GameRoute;
+  best: GameRoute;
+  // Out of 1000; 1000 for the best route or one as good
+  score: number;
+};
+
+// The daily puzzle, the one a seed picks, or a random one.
+export function fetchGamePuzzle(
+  difficulty: Difficulty,
+  pick: { daily: true } | { seed: number | null },
+  signal?: AbortSignal,
+): Promise<GamePuzzle> {
+  const params = new URLSearchParams({ difficulty });
+  if ("daily" in pick) params.set("daily", "true");
+  else if (pick.seed !== null) params.set("seed", String(pick.seed));
+  return getJson(`/api/game/puzzle?${params}`, signal);
+}
+
+export function fetchBestGameRoute(
+  fromIata: string,
+  toIata: string,
+  signal?: AbortSignal,
+): Promise<GameRoute> {
+  const params = new URLSearchParams({ from: fromIata, to: toIata });
+  return getJson(`/api/game/best?${params}`, signal);
+}
+
+// A finished route as IATA codes in flying order, ends included.
+export function fetchGameScore(path: string[], signal?: AbortSignal): Promise<GameResult> {
+  const params = new URLSearchParams();
+  for (const iata of path) params.append("path", iata);
+  return getJson(`/api/game/score?${params}`, signal);
+}

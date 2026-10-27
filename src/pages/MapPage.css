@@ -41,6 +41,7 @@
   z-index: 3;
 
   width: 100%;
+  box-sizing: border-box;
 
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -93,6 +94,27 @@
   background: var(--input-bg);
 }
 
+/* The way across to the other page, at the navbar's far right. */
+.navbar-link {
+  justify-self: end;
+
+  padding: 7px 12px;
+
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navbar-link:hover {
+  background: var(--input-bg);
+}
+
 .map-status {
   margin: 0;
   padding: 8px 12px;
@@ -135,9 +157,15 @@
     padding: 10px;
   }
 
-  /* The spacer that centres the search boxes on desktop. */
-  .map-navbar > [aria-hidden="true"] {
-    display: none;
+  /* Beside the brand, on the first row of the stacked navbar. */
+  .map-page .navbar-link {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+
+    padding: 4px 10px;
+
+    font-size: 13px;
   }
 
   .navbar-actions {

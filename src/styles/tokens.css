@@ -22,6 +22,15 @@
   --route-network: #46596b;
   --route-selected: #1b3480;
   --route-selected-ink: #16296b;
+  --route-best: #15803d;
+
+  /* The route game's ends and the player's position. Departure and arrival
+     are the colours of their pin images (src/assets/branding). */
+  --game-departure: #3fbaf4;
+  --game-departure-ink: #0b2a40;
+  --game-arrival: #152c4c;
+  --game-here: #f97316;
+  --game-here-ink: #431407;
   --route-airline-network: rgb(47 111 214 / 35%);
   --route-casing: rgb(255 255 255 / 85%);
 

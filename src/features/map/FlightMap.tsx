@@ -5,7 +5,6 @@ import Map, {
   ScaleControl,
   Source,
   Layer,
-  type MapGeoJSONFeature,
   type MapLayerMouseEvent,
   type MapRef,
 } from "react-map-gl/maplibre";
@@ -18,7 +17,22 @@ import {
   type RouteFilters,
 } from "../../api/flights";
 import { greatCircleLine } from "./greatCircle";
-import { applyWaterColour, PIN, PIN_TIERS, ROUTE } from "./mapTheme";
+import {
+  boundsOf,
+  computeWorldCopyOffsets,
+  lineFeature,
+  nearestPin,
+  pinFeatureId,
+  unwrapLng,
+} from "./mapGeometry";
+import {
+  applyWaterColour,
+  PIN,
+  PIN_COLOR_BY_TIER,
+  PIN_RADIUS_BY_TIER,
+  PIN_TIERS,
+  ROUTE,
+} from "./mapTheme";
 import type { SelectionRole } from "../../pages/MapPage";
 import { isMobileLayout } from "../../styles/breakpoints";
 
@@ -79,48 +93,6 @@ const PIN_HIT_LAYER_ID = "airport-pins-hit";
 const PIN_HIT_LAYER_IDS = [PIN_HIT_LAYER_ID];
 
 const NO_AIRPORTS: Airport[] = [];
-
-function computeWorldCopyOffsets(map: {
-  getZoom: () => number;
-  getContainer: () => { clientWidth: number };
-}): number[] {
-  const worldSizePixels = 512 * 2 ** map.getZoom();
-  const degreesVisible = (map.getContainer().clientWidth * 360) / worldSizePixels;
-  const radius = Math.max(1, Math.ceil(degreesVisible / 360) + 1);
-
-  const offsets: number[] = [];
-  for (let n = -radius; n <= radius; n++) offsets.push(n * 360);
-  return offsets;
-}
-
-function lineFeature(
-  from: Airport,
-  to: Airport,
-  properties: Record<string, unknown> = {},
-) {
-  return {
-    type: "Feature" as const,
-    properties,
-    geometry: {
-      type: "LineString" as const,
-      coordinates: greatCircleLine(from, to),
-    },
-  };
-}
-
-// Feature ids must be stable per airport, not per position in some list, or a
-// hover could survive a change of pin set and light up a different airport. An
-// IATA code read as base 36 is unique and needs no lookup table, so a selected
-// airport outside the current (filtered) list still gets one. Offset by 1
-// because maplibre treats a missing id and 0 alike.
-function pinFeatureId(iata: string): number {
-  return parseInt(iata, 36) + 1;
-}
-
-function unwrapLng(lng: number, referenceLng: number): number {
-  const delta = ((((lng - referenceLng) % 360) + 540) % 360) - 180;
-  return referenceLng + delta;
-}
 
 function FlightMap({
   airports,
@@ -411,16 +383,7 @@ function FlightMap({
     const framed = itineraryPath ?? itineraryOptions.flat();
     if (!map || framed.length === 0) return;
 
-    const reference = framed[0].lng;
-    const lngs = framed.map((airport) => unwrapLng(airport.lng, reference));
-    const lats = framed.map((airport) => airport.lat);
-    map.fitBounds(
-      [
-        [Math.min(...lngs), Math.min(...lats)],
-        [Math.max(...lngs), Math.max(...lats)],
-      ],
-      { padding: fitPadding("selection"), duration: 1000 },
-    );
+    map.fitBounds(boundsOf(framed), { padding: fitPadding("selection"), duration: 1000 });
   }, [itineraryPath, itineraryOptions]);
 
   const confirmedTargetId = bothSelected ? otherAirport?.iata : undefined;
@@ -470,18 +433,10 @@ function FlightMap({
       ...(otherAirport ? [otherAirport] : []),
     ];
 
-    const unwrappedLngs = visibleAirports.map((airport) =>
-      unwrapLng(airport.lng, anchorAirport.lng),
-    );
-    const lats = visibleAirports.map((airport) => airport.lat);
-
-    map.fitBounds(
-      [
-        [Math.min(...unwrappedLngs), Math.min(...lats)],
-        [Math.max(...unwrappedLngs), Math.max(...lats)],
-      ],
-      { padding: fitPadding("selection"), duration: CAMERA_DURATION },
-    );
+    map.fitBounds(boundsOf(visibleAirports), {
+      padding: fitPadding("selection"),
+      duration: CAMERA_DURATION,
+    });
   }, [anchorAirport, airports, connectionsLoaded]);
 
   const networkGeoJson = anchorAirport
@@ -492,32 +447,6 @@ function FlightMap({
         ),
       }
     : null;
-
-  // Hit areas are all the same size, so they overlap far more than the pins
-  // do; the pin whose centre is nearest the cursor wins, not the busiest one.
-  function nearestPin(event: MapLayerMouseEvent): MapGeoJSONFeature | undefined {
-    const map = event.target;
-    // Events bubbling up from the label markers (the close button) reach the
-    // map too, and would otherwise pick whichever pin sits behind them.
-    if (event.originalEvent.target !== map.getCanvas()) return undefined;
-
-    let nearest: MapGeoJSONFeature | undefined;
-    let nearestDistance = Infinity;
-    for (const feature of event.features ?? []) {
-      if (feature.geometry.type !== "Point") continue;
-
-      const [lng, lat] = feature.geometry.coordinates;
-      // Unwrapped towards the cursor, so a pin in a neighbouring world copy
-      // is measured where it is drawn.
-      const pixel = map.project([unwrapLng(lng, event.lngLat.lng), lat]);
-      const distance = (pixel.x - event.point.x) ** 2 + (pixel.y - event.point.y) ** 2;
-      if (distance < nearestDistance) {
-        nearest = feature;
-        nearestDistance = distance;
-      }
-    }
-    return nearest;
-  }
 
   function handlePinClick(event: MapLayerMouseEvent) {
     const iata = nearestPin(event)?.properties?.iata;
@@ -777,18 +706,7 @@ function FlightMap({
                 ],
               }}
               paint={{
-                // ["step", input, <tier0>, 8, <tier1>, 25, <tier2>, 100, <tier3>]
-                "circle-radius": [
-                  "step",
-                  ["get", "routeCount"],
-                  PIN.radius * PIN_TIERS[0].scale,
-                  PIN_TIERS[1].minRoutes,
-                  PIN.radius * PIN_TIERS[1].scale,
-                  PIN_TIERS[2].minRoutes,
-                  PIN.radius * PIN_TIERS[2].scale,
-                  PIN_TIERS[3].minRoutes,
-                  PIN.radius * PIN_TIERS[3].scale,
-                ],
+                "circle-radius": PIN_RADIUS_BY_TIER,
                 // Hover wins; otherwise every pin keeps its traffic category,
                 // selected or not. Reading hover from feature state keeps this
                 // expression constant, so it is never recompiled mid-hover.
@@ -796,17 +714,7 @@ function FlightMap({
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
                   PIN.hover,
-                  [
-                    "step",
-                    ["get", "routeCount"],
-                    PIN_TIERS[0].color,
-                    PIN_TIERS[1].minRoutes,
-                    PIN_TIERS[1].color,
-                    PIN_TIERS[2].minRoutes,
-                    PIN_TIERS[2].color,
-                    PIN_TIERS[3].minRoutes,
-                    PIN_TIERS[3].color,
-                  ],
+                  PIN_COLOR_BY_TIER,
                 ],
                 // Departure and arrival are marked by the ring and the label,
                 // never by the fill.

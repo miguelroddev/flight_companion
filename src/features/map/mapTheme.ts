@@ -1,3 +1,5 @@
+import type { ExpressionSpecification } from "maplibre-gl";
+
 /* Midnight Aviation colours for everything maplibre paints.
  *
  * Mirrors the map half of src/styles/tokens.css: paint properties are
@@ -22,6 +24,9 @@ export const ROUTE = {
   // selected-route navy; lighter still once one is opened over them.
   itineraryOptionOpacity: 0.55,
   itineraryOptionFadedOpacity: 0.25,
+  // The route game's best route, shown beside the player's navy one once a
+  // game ends. Green reads as "the answer" and stays clear of every pin tier.
+  best: "#15803d",
   // Pale, not dark: the casing is wider than the line, and a dark one would
   // swallow a navy route. White haloes it against the blue ocean instead.
   casing: "rgb(255 255 255 / 85%)",
@@ -55,6 +60,22 @@ export const PIN_TIERS = [
   { minRoutes: 25, label: "25 - 99", scale: 0.8, color: "#0891b2" },
   { minRoutes: 100, label: "100+", scale: 1, color: "#1e40af" },
 ];
+
+// Maplibre expressions sizing and colouring a pin by its routeCount property,
+// tier by tier: ["step", input, <tier0>, 8, <tier1>, 25, <tier2>, 100, <tier3>]
+export const PIN_RADIUS_BY_TIER = [
+  "step",
+  ["get", "routeCount"],
+  PIN.radius * PIN_TIERS[0].scale,
+  ...PIN_TIERS.slice(1).flatMap((tier) => [tier.minRoutes, PIN.radius * tier.scale]),
+] as ExpressionSpecification;
+
+export const PIN_COLOR_BY_TIER = [
+  "step",
+  ["get", "routeCount"],
+  PIN_TIERS[0].color,
+  ...PIN_TIERS.slice(1).flatMap((tier) => [tier.minRoutes, tier.color]),
+] as ExpressionSpecification;
 
 /* Positron ships grey water; this is the one basemap layer overridden, to get
  * the white-land/blue-ocean look. Missing layers are skipped, so an upstream

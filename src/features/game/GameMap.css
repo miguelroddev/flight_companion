@@ -1,0 +1,103 @@
+/* The route game's map, on top of the explore map's label look
+   (FlightMap.css). */
+
+/* The departure and arrival pin images: tip on the airport. */
+.game-end-pin {
+  display: block;
+
+  filter: drop-shadow(0 1px 2px rgb(15 35 50 / 35%));
+}
+
+/* The role of a labelled airport, in its own colour: From in the light
+   blue of the departure pin, To in the navy of the arrival one. */
+.game-label-role {
+  flex: none;
+
+  padding: 2px 5px;
+
+  border-radius: 4px;
+
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.game-label--from {
+  border-color: var(--game-departure);
+}
+
+.game-label--from .game-label-role {
+  color: var(--game-departure-ink);
+  background: var(--game-departure);
+}
+
+.game-label--to {
+  border-color: var(--game-arrival);
+}
+
+.game-label--to .game-label-role {
+  color: #ffffff;
+  background: var(--game-arrival);
+}
+
+.game-label--here {
+  border-color: var(--game-here);
+}
+
+.game-label--here .game-label-role {
+  color: var(--game-here-ink);
+  background: var(--game-here);
+}
+
+/* Where the player stands: a steady ring, and a second one pulsing out of
+   it. */
+.game-here-ring {
+  position: relative;
+
+  display: block;
+
+  width: 22px;
+  height: 22px;
+
+  border: 2.5px solid var(--game-here);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.game-here-ring::before {
+  position: absolute;
+  inset: -2.5px;
+
+  border: 2.5px solid var(--game-here);
+  border-radius: 50%;
+
+  animation: game-here-pulse 1.6s ease-out infinite;
+  content: "";
+}
+
+@keyframes game-here-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-here-ring::before {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* The best route's stops, chipped in its green. */
+.airport-hover-label--best strong {
+  background: var(--route-best);
+}

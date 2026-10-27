@@ -1,0 +1,154 @@
+/* The route game: the map full screen, the navbar and the game panel
+   floating over it as on the explore map (MapPage.css, whose navbar this
+   reuses). */
+.game-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.game-overlay {
+  position: absolute;
+  inset: 16px 16px 40px;
+  z-index: 10;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+
+  /* lets clicks pass through the gaps straight to the map */
+  pointer-events: none;
+}
+
+.game-overlay > * {
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+/* The panel alone gives way when space runs out, scrolling within it. */
+.game-overlay > .game-panel {
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.game-navbar-title {
+  margin: 0;
+
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: normal;
+  line-height: 1.2;
+}
+
+/* Phones (MOBILE_MEDIA_QUERY in src/styles/breakpoints.ts): navbar, map and
+   panel stacked down the screen. The map has to stay in view while playing,
+   so the panel is a strip under it rather than a full-screen sheet. */
+@media (max-width: 760px) {
+  .game-page {
+    display: flex;
+    flex-direction: column;
+
+    background: var(--input-bg);
+  }
+
+  .game-overlay {
+    display: contents;
+  }
+
+  /* Over MapPage.css's phone navbar, which stacks for the search boxes. */
+  .game-page .game-navbar {
+    order: 1;
+
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 8px 10px;
+  }
+
+  .game-navbar-title {
+    display: none;
+  }
+
+  .game-page .flight-map {
+    order: 2;
+    flex: 1 1 auto;
+
+    height: auto;
+    min-height: 0;
+    margin-top: 8px;
+
+    isolation: isolate;
+  }
+
+  /* Phones zoom with two fingers; the buttons would only sit on the route. */
+  .game-page .maplibregl-ctrl-group {
+    display: none;
+  }
+
+  /* Labels down to their role and code, so neighbouring stops (Mumbai and
+     Hyderabad) do not bury each other; the panel names the cities. */
+  .game-page .airport-label-place {
+    display: none;
+  }
+
+  .game-page .airport-hover-label {
+    padding: 2px;
+  }
+
+  .game-overlay > .game-panel {
+    order: 3;
+
+    width: auto;
+    max-width: none;
+    max-height: 48svh;
+    margin: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  /* Nothing left to pick on the map once a game ends: the result gets the
+     larger share, with both routes still in view above it. */
+  .game-overlay > .game-panel--over {
+    max-height: 62svh;
+  }
+
+  /* Before a game the map is only a backdrop: the setup takes most of the
+     screen. */
+  .game-overlay > .game-panel--setup {
+    max-height: 72svh;
+  }
+
+  .game-ticket {
+    gap: 10px;
+
+    padding: 12px 14px 14px;
+  }
+
+  .game-ticket-code {
+    font-size: 26px;
+  }
+
+  /* While playing the panel has half the screen: the route matters, what
+     kind of game it is can wait for the result. */
+  .game-panel--play .game-ticket-chips {
+    display: none;
+  }
+
+  .game-intro-title {
+    font-size: 20px;
+  }
+
+  .game-body {
+    gap: 12px;
+
+    padding: 14px 14px 16px;
+  }
+
+  /* iOS zooms the whole page into any focused input set below 16px. */
+  .game-panel .airport-search input {
+    font-size: 16px;
+  }
+}

@@ -96,6 +96,13 @@ Planned infrastructure:
 * Added suggestion dropdown behavior.
 * Added selected-airport state handling.
 
+### Route Game
+
+* A game at `/play`: fly between two airports with no direct flight, one leg at a time on the map, and score up to 1000 against the best route.
+* The best route is the shortest by distance plus 300 km per flight, found with Dijkstra over the whole route network (`backend/app/route_game.py`).
+* Easy, medium and hard puzzles, a daily route shared by everyone, and an optional no-hints mode where flights that don't exist cost points.
+* `/play?difficulty=medium&seed=123` replays a given puzzle, which is what shared results link to.
+
 ## 🚧 Planned Features
 
 ### Map and Route Visualization
@@ -256,6 +263,8 @@ Start the frontend development environment with:
 ```bash
 docker compose up
 ```
+
+The app is then at http://localhost:5174. The port is strict: if something else holds it, Vite stops with an error instead of quietly moving elsewhere.
 
 Install frontend dependencies inside the Docker environment with:
 

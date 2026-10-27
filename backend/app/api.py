@@ -1,4 +1,6 @@
+import random
 from collections.abc import Iterable
+from datetime import datetime, timezone
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,10 +10,15 @@ from sqlalchemy.orm import Session, aliased, joinedload
 from app.database import get_db
 from app.models import Airline, Airport, Route
 from app.route_filters import RouteFilterParams, RouteFilters
+from app.route_game import MAX_FLIGHTS, RouteGraph, great_circle_km, score
 from app.schemas import (
     AirlineOut,
     AirlineServiceOut,
     AirportOut,
+    Difficulty,
+    GamePuzzleOut,
+    GameResultOut,
+    GameRouteOut,
     ItinerariesOut,
     ItineraryOut,
     RouteOut,
@@ -303,3 +310,127 @@ def get_airline(code: str, db: DbSession):
     if airline is None:
         raise HTTPException(status_code=404, detail=f"Airline {code.upper()} not found")
     return AirlineOut.from_model(airline)
+
+
+# The whole network, for the route game. Built on first use and kept for the
+# life of the process: a few MB, and every game needs all of it. Routes are
+# only ever re-imported offline, and the backend restarted, so it never goes
+# stale under a running server.
+_route_graph: RouteGraph | None = None
+
+
+def route_graph(db: Session) -> RouteGraph:
+    global _route_graph
+    if _route_graph is None:
+        counts = outbound_route_counts(db)
+        airports = {
+            airport.iata_code: AirportOut.from_model(airport, counts.get(airport.id, 0))
+            for airport in db.scalars(select(Airport))
+        }
+        iata_by_id = {
+            airport_id: iata
+            for airport_id, iata in db.execute(select(Airport.id, Airport.iata_code))
+        }
+        legs: dict[str, dict[str, int]] = {}
+        pairs = db.execute(
+            select(
+                Route.source_airport_id,
+                Route.destination_airport_id,
+                func.min(Route.distance_km),
+            ).group_by(Route.source_airport_id, Route.destination_airport_id)
+        )
+        for source_id, destination_id, km in pairs:
+            source, destination = iata_by_id[source_id], iata_by_id[destination_id]
+            if km is None:
+                km = great_circle_km(airports[source], airports[destination])
+            legs.setdefault(source, {})[destination] = km
+        _route_graph = RouteGraph(airports, legs)
+    return _route_graph
+
+
+def game_route(graph: RouteGraph, path: list[str]) -> GameRouteOut:
+    """Of a route known to be flyable."""
+    leg_km = [graph.legs[source][destination] for source, destination in zip(path, path[1:])]
+    return GameRouteOut(
+        airports=[graph.airports[iata] for iata in path],
+        leg_km=leg_km,
+        total_km=sum(leg_km),
+    )
+
+
+def best_game_route(graph: RouteGraph, departure: str, arrival: str) -> list[str]:
+    for iata in (departure, arrival):
+        if iata not in graph.airports:
+            raise HTTPException(status_code=404, detail=f"Airport {iata} not found")
+    best = graph.best_route(departure, arrival)
+    if best is None:
+        raise HTTPException(
+            status_code=404, detail=f"No way to fly from {departure} to {arrival}"
+        )
+    return best
+
+
+@router.get("/game/puzzle", response_model=GamePuzzleOut)
+def get_game_puzzle(
+    db: DbSession,
+    difficulty: Difficulty = "medium",
+    daily: bool = False,
+    seed: Annotated[int | None, Query(ge=0)] = None,
+):
+    """A route game. The daily one is the same for everyone all day (UTC);
+    otherwise the seed picks it, or a random one is dealt without one."""
+    graph = route_graph(db)
+    today = datetime.now(timezone.utc).date() if daily else None
+    if today is not None:
+        seed = today.toordinal()
+    elif seed is None:
+        seed = random.randrange(1_000_000_000)
+
+    try:
+        departure, arrival = graph.make_puzzle(difficulty, seed)
+    except LookupError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    return GamePuzzleOut(
+        difficulty=difficulty,
+        seed=seed,
+        daily=today,
+        departure=graph.airports[departure],
+        arrival=graph.airports[arrival],
+        max_flights=MAX_FLIGHTS,
+    )
+
+
+@router.get("/game/best", response_model=GameRouteOut)
+def get_best_game_route(
+    db: DbSession,
+    departure: Annotated[str, Query(alias="from")],
+    arrival: Annotated[str, Query(alias="to")],
+):
+    """The best route between two airports, for a player who gives up."""
+    graph = route_graph(db)
+    return game_route(graph, best_game_route(graph, departure.upper(), arrival.upper()))
+
+
+@router.get("/game/score", response_model=GameResultOut)
+def score_game_route(
+    db: DbSession,
+    # Repeated, in flying order: ?path=LIS&path=FRA&path=NRT
+    path: Annotated[list[str], Query(min_length=2, max_length=MAX_FLIGHTS + 1)],
+):
+    """A finished route, scored against the best one between its ends."""
+    graph = route_graph(db)
+    path = [iata.upper() for iata in path]
+    if path[0] == path[-1]:
+        raise HTTPException(status_code=422, detail="The route must end somewhere else")
+    for source, destination in zip(path, path[1:]):
+        if graph.leg_km(source, destination) is None:
+            raise HTTPException(
+                status_code=422, detail=f"No flight from {source} to {destination}"
+            )
+
+    best = best_game_route(graph, path[0], path[-1])
+    return GameResultOut(
+        route=game_route(graph, path),
+        best=game_route(graph, best),
+        score=score(graph.cost(best), graph.cost(path)),
+    )

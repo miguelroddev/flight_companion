@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -6,6 +7,7 @@ from pydantic.alias_generators import to_camel
 from app.models import Airline, Airport
 
 DayOfWeek = Literal["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+Difficulty = Literal["easy", "medium", "hard"]
 
 
 class ApiModel(BaseModel):
@@ -82,3 +84,32 @@ class ItinerariesOut(ApiModel):
     stops: Literal[1, 2] | None
     # Fastest first
     itineraries: list[ItineraryOut]
+
+
+class GamePuzzleOut(ApiModel):
+    """A route game to play: get from departure to arrival, which have no
+    direct flight between them."""
+
+    difficulty: Difficulty
+    # Asking again with this seed and difficulty gives the same puzzle
+    seed: int
+    # The day it is the daily puzzle of, or None for a random one
+    daily: date | None
+    departure: AirportOut
+    arrival: AirportOut
+    max_flights: int
+
+
+class GameRouteOut(ApiModel):
+    # In flying order, departure and arrival included
+    airports: list[AirportOut]
+    # The distance of each flight, one fewer than there are airports
+    leg_km: list[int]
+    total_km: int
+
+
+class GameResultOut(ApiModel):
+    route: GameRouteOut
+    best: GameRouteOut
+    # Out of 1000; 1000 for the best route or one as good
+    score: int

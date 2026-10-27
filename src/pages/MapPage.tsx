@@ -248,7 +248,9 @@ function MapPage() {
             />
           </div>
 
-          <div aria-hidden="true" />
+          <Link className="navbar-link" to="/play">
+            Route game
+          </Link>
         </nav>
 
         <FilterBar

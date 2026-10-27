@@ -5,7 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "0.0.0.0",
-    port: 5173,
+    // 5173 belongs to the outrora project. Strict, so a clash is an error
+    // rather than a silent move to another port, or the same port on the
+    // other IP family.
+    port: 5174,
+    strictPort: true,
     watch: {
       usePolling: true,
     },
