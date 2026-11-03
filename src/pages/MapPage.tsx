@@ -26,7 +26,9 @@ export type SelectionRole = "departure" | "arrival";
 
 const NO_PATHS: Airport[][] = [];
 
-function MapPage() {
+// active: on screen. The page stays mounted, hidden, while the route game is
+// open (App.tsx), so its selection, filters and map are still there on return.
+function MapPage({ active }: { active: boolean }) {
   const [airports, setAirports] = useState<Airport[]>([]);
   const [airportsError, setAirportsError] = useState(false);
   // Replaced wholesale on every change, so its identity alone tells the
@@ -221,6 +223,7 @@ function MapPage() {
         onAirportDeselect={(role) =>
           role === "departure" ? clearDeparture() : clearArrival()
         }
+        active={active}
       />
 
       <div className="map-overlay">

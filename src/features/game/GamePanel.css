@@ -107,6 +107,21 @@
   opacity: 0.85;
 }
 
+/* Reset view: a chip that is a button, pushed to the far end of the row. */
+.game-chip--reset {
+  margin-left: auto;
+
+  color: inherit;
+  font-family: inherit;
+  line-height: inherit;
+
+  cursor: pointer;
+}
+
+.game-chip--reset:hover {
+  background: rgb(255 255 255 / 18%);
+}
+
 .game-ticket-route {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(80px, 1.1fr) minmax(0, 1fr);
@@ -1375,6 +1390,7 @@
 .game-button:focus-visible,
 .game-tool:focus-visible,
 .game-switch:focus-visible,
+.game-chip--reset:focus-visible,
 .game-rules summary:focus-visible {
   outline: 2px solid var(--game-departure);
   outline-offset: 2px;

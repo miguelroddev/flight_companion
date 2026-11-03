@@ -33,6 +33,7 @@ import {
   PIN_TIERS,
   ROUTE,
 } from "./mapTheme";
+import { useSharedCamera } from "./sharedCamera";
 import type { SelectionRole } from "../../pages/MapPage";
 import { isMobileLayout } from "../../styles/breakpoints";
 
@@ -53,6 +54,8 @@ type FlightMapProps = {
   itineraryPath: Airport[] | null;
   onAirportClick: (airport: Airport) => void;
   onAirportDeselect: (role: SelectionRole) => void;
+  // On screen, rather than kept hidden while the route game is open
+  active: boolean;
 };
 
 // The floating header (16px margin + 66px navbar + 12px gap + 46px filter bar)
@@ -105,8 +108,10 @@ function FlightMap({
   itineraryPath,
   onAirportClick,
   onAirportDeselect,
+  active,
 }: FlightMapProps) {
   const mapRef = useRef<MapRef>(null);
+  const camera = useSharedCamera(mapRef, active);
   const [worldCopyOffsets, setWorldCopyOffsets] = useState<number[]>([
     -360, 0, 360,
   ]);
@@ -391,7 +396,8 @@ function FlightMap({
   // The world view is fitted once per return to it, not every time the airport
   // list changes: toggling a filter refetches the list, and re-fitting would
   // yank the camera away from wherever the user had panned to.
-  const worldFitted = useRef(false);
+  // Opened where the route game's map was looking, there is no world to fit.
+  const worldFitted = useRef(camera.resumed);
 
   useEffect(() => {
     const CAMERA_DURATION = 1000;
@@ -564,6 +570,7 @@ function FlightMap({
           syncWorldCopyOffsets(e.target);
         }}
         onMove={(e) => syncWorldCopyOffsets(e.target)}
+        onMoveEnd={(e) => camera.saveCamera(e.target)}
         onResize={(e) => syncWorldCopyOffsets(e.target)}
         interactiveLayerIds={
           pinGeoJson.features.length > 0 ? PIN_HIT_LAYER_IDS : undefined
@@ -571,13 +578,7 @@ function FlightMap({
         onMouseMove={handlePinHover}
         onMouseOut={(e) => setHoveredFeature(e.target, null)}
         onClick={handlePinClick}
-        initialViewState={{
-          longitude: 0,
-          latitude: 20,
-          zoom: 1.2,
-          pitch: 0,
-          bearing: 0,
-        }}
+        initialViewState={camera.initialViewState}
         mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
         dragRotate={false}
         touchPitch={false}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import GameMap from "../features/game/GameMap";
+import GameMap, { type GameMapHandle } from "../features/game/GameMap";
 import {
   GameOver,
   GamePlay,
@@ -40,7 +40,10 @@ function placeName(airport: Airport) {
 //
 // /play?difficulty=medium&seed=123 opens that puzzle straight away, which is
 // how a shared result links back to the same game.
-function GamePage() {
+//
+// active: on screen. The page stays mounted, hidden, while the explore map is
+// open (App.tsx), so a game in progress is still there on return.
+function GamePage({ active }: { active: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [airports, setAirports] = useState<Airport[]>([]);
   const [settings, setSettings] = useState<GameSettings>({ difficulty: "medium", hints: false });
@@ -102,6 +105,20 @@ function GamePage() {
       void startGame(difficulty as Difficulty, { seed });
     }
   });
+
+  // Back from the explore map, whose links know nothing of the game, the
+  // address names the puzzle in progress again, so a reload or a copied link
+  // still opens it.
+  useEffect(() => {
+    if (!active || !puzzle) return;
+    const difficulty = puzzle.difficulty;
+    const seed = String(puzzle.seed);
+    if (searchParams.get("difficulty") === difficulty && searchParams.get("seed") === seed) return;
+    setSearchParams({ difficulty, seed }, { replace: true });
+  }, [active, puzzle, searchParams, setSearchParams]);
+
+  const gameMap = useRef<GameMapHandle>(null);
+  const resetView = () => gameMap.current?.resetView();
 
   const current = path.at(-1) ?? null;
   const currentIata = current?.iata;
@@ -245,6 +262,7 @@ function GamePage() {
         misses={misses}
         onNewGame={() => startGame(puzzle.difficulty, { seed: null })}
         onChangeSettings={changeSettings}
+        onResetView={resetView}
       />
     );
   } else {
@@ -268,6 +286,7 @@ function GamePage() {
         }}
         onGiveUp={giveUp}
         onScore={arrived && !busy ? () => score(path) : null}
+        onResetView={resetView}
       />
     );
   }
@@ -275,12 +294,14 @@ function GamePage() {
   return (
     <main className="game-page">
       <GameMap
+        ref={gameMap}
         airports={airports}
         arrival={puzzle?.arrival ?? null}
         path={ending?.kind === "finished" ? ending.route.airports : path}
         options={options}
         bestPath={ending?.best.airports ?? null}
         onAirportClick={puzzle && !ending && !arrived ? handlePick : null}
+        active={active}
       />
 
       <div className="game-overlay">

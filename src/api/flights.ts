@@ -142,10 +142,37 @@ export function fetchAirlines(): Promise<Airline[]> {
   return airlinesRequest;
 }
 
+// Every airport, unfiltered: what both the explore map and the route game
+// open with. Fetched once and shared like the airlines, so going from one to
+// the other never downloads the ~390KB list again.
+let allAirportsRequest: Promise<Airport[]> | null = null;
+
+// A shared request cannot be cancelled for one caller, so a caller's abort
+// only rejects its own wait for it, as a fetch of its own would.
+function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  return new Promise<T>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const abort = () => reject(signal.reason);
+    signal.addEventListener("abort", abort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
 export function fetchAirports(
   filters: RouteFilters,
   signal?: AbortSignal,
 ): Promise<Airport[]> {
+  if (filters === NO_FILTERS) {
+    allAirportsRequest ??= getJson<Airport[]>("/api/airports").catch((error) => {
+      allAirportsRequest = null;
+      throw error;
+    });
+    return untilAborted(allAirportsRequest, signal);
+  }
   const params = appendFilters(new URLSearchParams(), filters);
   return getJson(withQuery("/api/airports", params), signal);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import Map, {
   Layer,
   Marker,
@@ -25,6 +25,7 @@ import {
   PIN_RADIUS_BY_TIER,
   ROUTE,
 } from "../map/mapTheme";
+import { useSharedCamera } from "../map/sharedCamera";
 import { isMobileLayout } from "../../styles/breakpoints";
 import departurePin from "../../assets/branding/departure-pin.png";
 import arrivalPin from "../../assets/branding/arrival-pin.png";
@@ -48,6 +49,15 @@ type GameMapProps = {
   bestPath: Airport[] | null;
   // Null when the map is only to be looked at
   onAirportClick: ((airport: Airport) => void) | null;
+  // On screen, rather than kept hidden while the explore map is open
+  active: boolean;
+  ref?: Ref<GameMapHandle>;
+};
+
+// What the game panel can ask of the map.
+export type GameMapHandle = {
+  // Frame the whole game again, after zooming in on a stop
+  resetView: () => void;
 };
 
 const PIN_SOURCE_ID = "game-pins";
@@ -77,6 +87,21 @@ function fitPadding() {
     : { top: 120, bottom: 60, left: 470, right: 110 };
 }
 
+// Whether the airport is in the part of the map the panel and navbar leave
+// clear, in whichever copy of the world is nearest the centre.
+function inClearView(map: MapRef, airport: Airport): boolean {
+  const lng = unwrapLng(airport.lng, map.getCenter().lng);
+  const { x, y } = map.project([lng, airport.lat]);
+  const padding = fitPadding();
+  const { clientWidth, clientHeight } = map.getContainer();
+  return (
+    x >= padding.left &&
+    x <= clientWidth - padding.right &&
+    y >= padding.top &&
+    y <= clientHeight - padding.bottom
+  );
+}
+
 // The route game's map: the player's route so far, where it can go next, and
 // at the end the best route beside it. A cut-down sibling of FlightMap, which
 // is built around picking two airports to explore between.
@@ -87,8 +112,11 @@ function GameMap({
   options,
   bestPath,
   onAirportClick,
+  active,
+  ref,
 }: GameMapProps) {
   const mapRef = useRef<MapRef>(null);
+  const camera = useSharedCamera(mapRef, active);
   const [worldCopyOffsets, setWorldCopyOffsets] = useState<number[]>([-360, 0, 360]);
   // Hover goes through maplibre's feature state and an imperative marker, as
   // in FlightMap: as React state it would re-render every pin per mouse move.
@@ -209,22 +237,54 @@ function GameMap({
     [bestPath],
   );
 
-  // Frames the route so far and the arrival as the game goes, and both
-  // routes at the end. Keyed by the codes, so new but equal arrays (a
-  // refetch) do not move the camera.
-  const framed = useMemo(
-    () => (arrival ? [...path, ...(bestPath ?? [arrival])] : NO_AIRPORTS),
-    [path, bestPath, arrival],
-  );
-  const framedKey = framed.map((airport) => airport.iata).join("-");
+  // The camera follows the game without fighting the player's own zoom. A
+  // new puzzle is framed once, departure to arrival. After that a pick only
+  // pans, at the zoom the player chose, and only when it lands out of view;
+  // the end only re-frames when the two routes do not already fit. Keyed by
+  // the codes, so new but equal arrays (a refetch) do not move the camera.
+  const puzzleKey = departure && arrival ? `${departure.iata}-${arrival.iata}` : null;
+  const currentKey = current?.iata ?? null;
+  const bestKey = bestPath?.map((airport) => airport.iata).join("-") ?? null;
+  const framedPuzzle = useRef<string | null>(null);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || framed.length === 0) return;
-    map.fitBounds(boundsOf(framed), { padding: fitPadding(), duration: 1000, maxZoom: 6 });
-    // framed is read through its key, see above.
+    if (!map || !departure || !arrival || !puzzleKey) {
+      framedPuzzle.current = null;
+      return;
+    }
+    const fit = (airports: Airport[]) =>
+      map.fitBounds(boundsOf(airports), { padding: fitPadding(), duration: 1000, maxZoom: 6 });
+
+    if (framedPuzzle.current !== puzzleKey) {
+      framedPuzzle.current = puzzleKey;
+      fit([departure, arrival]);
+    } else if (bestPath) {
+      const routes = [...path, ...bestPath];
+      if (!routes.every((airport) => inClearView(map, airport))) fit(routes);
+    } else if (current && !inClearView(map, current)) {
+      map.easeTo({
+        center: [unwrapLng(current.lng, map.getCenter().lng), current.lat],
+        duration: 800,
+      });
+    }
+    // The airports are read through their keys, see above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [framedKey]);
+  }, [puzzleKey, currentKey, bestKey]);
+
+  // The whole game at once: the route flown so far and the arrival, and at
+  // the end both routes. The same frame a new puzzle opens on, plus the stops.
+  useImperativeHandle(ref, () => ({
+    resetView() {
+      const map = mapRef.current;
+      if (!map || !arrival) return;
+      map.fitBounds(boundsOf([...path, ...(bestPath ?? [arrival])]), {
+        padding: fitPadding(),
+        duration: 800,
+        maxZoom: 6,
+      });
+    },
+  }));
 
   function showHoverLabel(
     map: MapLayerMouseEvent["target"],
@@ -322,12 +382,13 @@ function GameMap({
           syncWorldCopyOffsets(e.target);
         }}
         onMove={(e) => syncWorldCopyOffsets(e.target)}
+        onMoveEnd={(e) => camera.saveCamera(e.target)}
         onResize={(e) => syncWorldCopyOffsets(e.target)}
         interactiveLayerIds={interactive ? PIN_HIT_LAYER_IDS : undefined}
         onMouseMove={interactive ? handlePinHover : undefined}
         onMouseOut={(e) => setHovered(e.target, null)}
         onClick={interactive ? handlePinClick : undefined}
-        initialViewState={{ longitude: 0, latitude: 20, zoom: 1.2, pitch: 0, bearing: 0 }}
+        initialViewState={camera.initialViewState}
         mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
         dragRotate={false}
         touchPitch={false}

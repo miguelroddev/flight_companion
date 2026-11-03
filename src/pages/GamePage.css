@@ -147,6 +147,12 @@
     padding: 14px 14px 16px;
   }
 
+  /* Reset view stays on desktop: here two fingers zoom the map strip back
+     out as fast, and the chip row is short of room. */
+  .game-chip--reset {
+    display: none;
+  }
+
   /* iOS zooms the whole page into any focused input set below 16px. */
   .game-panel .airport-search input {
     font-size: 16px;

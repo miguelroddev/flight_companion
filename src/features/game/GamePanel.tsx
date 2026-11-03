@@ -68,7 +68,8 @@ function LevelBars({ level }: { level: number }) {
 
 // The head of every panel once a puzzle is dealt, read like a boarding pass:
 // where from, where to, and what kind of game it is.
-function Ticket({ puzzle }: { puzzle: GamePuzzle }) {
+// onResetView: frames the whole game on the map again.
+function Ticket({ puzzle, onResetView }: { puzzle: GamePuzzle; onResetView: () => void }) {
   const km = haversineDistanceKm(puzzle.departure, puzzle.arrival);
   return (
     <header className="game-ticket">
@@ -81,6 +82,12 @@ function Ticket({ puzzle }: { puzzle: GamePuzzle }) {
           <LevelBars level={difficultyLevel(puzzle.difficulty)} />
           {difficultyLabel(puzzle.difficulty)}
         </span>
+        {/* Desktop only (GamePanel.css): on phones the map is a strip just
+            above the panel, and two fingers zoom it back out as fast. */}
+        <button type="button" className="game-chip game-chip--reset" onClick={onResetView}>
+          <Icon name="fit" />
+          Reset view
+        </button>
       </div>
 
       <div className="game-ticket-route">
@@ -317,6 +324,7 @@ type GamePlayProps = {
   onGiveUp: () => void;
   // Shown once the arrival is reached, should scoring the route have failed
   onScore: (() => void) | null;
+  onResetView: () => void;
 };
 
 export function GamePlay({
@@ -332,6 +340,7 @@ export function GamePlay({
   onRestart,
   onGiveUp,
   onScore,
+  onResetView,
 }: GamePlayProps) {
   const current = path[path.length - 1];
   const flights = path.length - 1;
@@ -363,7 +372,7 @@ export function GamePlay({
 
   return (
     <section className="game-panel game-panel--play" aria-label="Route game">
-      <Ticket puzzle={puzzle} />
+      <Ticket puzzle={puzzle} onResetView={onResetView} />
 
       <div className="game-body">
         <div className="game-status">
@@ -575,9 +584,17 @@ type GameOverProps = {
   misses: number;
   onNewGame: () => void;
   onChangeSettings: () => void;
+  onResetView: () => void;
 };
 
-export function GameOver({ puzzle, ending, misses, onNewGame, onChangeSettings }: GameOverProps) {
+export function GameOver({
+  puzzle,
+  ending,
+  misses,
+  onNewGame,
+  onChangeSettings,
+  onResetView,
+}: GameOverProps) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
@@ -597,7 +614,7 @@ export function GameOver({ puzzle, ending, misses, onNewGame, onChangeSettings }
 
   return (
     <section className="game-panel game-panel--over" aria-label="Route game result">
-      <Ticket puzzle={puzzle} />
+      <Ticket puzzle={puzzle} onResetView={onResetView} />
 
       <div className="game-body">
         {ending.kind === "finished" ? (
