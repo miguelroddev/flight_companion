@@ -78,13 +78,15 @@ type LabelRole = "from" | "to" | "here";
 const ROLE_TAGS: Record<LabelRole, string> = { from: "From", to: "To", here: "You're here" };
 
 // On desktop the game panel (376px with its margin) floats over the left of
-// the map and the navbar (~70px) over its top; on phones both sit outside the
-// map (GamePage.css). Labels are centred ~36px above their pins and can be
-// ~120px wide, so a pin needs that much room more on every side.
+// the map and the navbar over its top, down to ~70px; on phones both sit
+// outside the map (GamePage.css). The From and To labels stand on the 38px
+// pin images, so their tops reach ~60px above the airport, and labels can be
+// ~120px wide: an airport needs that much room more on every side. Top, on
+// desktop: 70px of navbar, 60px of label and a small gap between them.
 function fitPadding() {
   return isMobileLayout()
-    ? { top: 56, bottom: 56, left: 64, right: 64 }
-    : { top: 120, bottom: 60, left: 470, right: 110 };
+    ? { top: 76, bottom: 56, left: 64, right: 64 }
+    : { top: 140, bottom: 60, left: 470, right: 110 };
 }
 
 // Whether the airport is in the part of the map the panel and navbar leave
