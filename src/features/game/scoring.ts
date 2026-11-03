@@ -30,25 +30,32 @@ export function finalScore(routeScore: number, misses: number): number {
   return Math.max(0, routeScore - misses * MISS_PENALTY);
 }
 
-// Stars and verdict judge the route alone, never the misses: they say how
-// good the route found was, the points how cleanly it was found.
-// 3 for the best route, 2 for a route within reach of it, 1 for getting there.
-// 850 is the best number of flights at up to ~18% more distance, or one
-// flight more at no extra distance: a fair detour still earns two, so one
-// star means a clearly roundabout way.
-export const TWO_STAR_SCORE = 850;
+// How many flights more the route took than the best one; never fewer, as
+// the best route takes the fewest there are.
+export function extraFlights(route: GameRoute, best: GameRoute): number {
+  return Math.max(0, route.legKm.length - best.legKm.length);
+}
 
-export function starCount(routeScore: number): number {
-  if (routeScore >= PERFECT_SCORE) return 3;
-  if (routeScore >= TWO_STAR_SCORE) return 2;
+// Stars and verdict judge the route alone, never the misses: they say how
+// good the route found was, the points how cleanly it was found. Stars go by
+// flights only, the game's first rule: 3 for as few flights as the best
+// route, however much longer it flies, 2 for one flight more, 1 for getting
+// there. The distance still costs points.
+export function starCount(route: GameRoute, best: GameRoute): number {
+  const extra = extraFlights(route, best);
+  if (extra === 0) return 3;
+  if (extra === 1) return 2;
   return 1;
 }
 
-export function verdict(routeScore: number): string {
-  if (routeScore >= PERFECT_SCORE) return "Perfect route!";
-  if (routeScore >= 980) return "So close!";
-  if (routeScore >= 920) return "Great route";
-  if (routeScore >= TWO_STAR_SCORE) return "Good route";
+export function verdict(route: GameRoute, best: GameRoute, routeScore: number): string {
+  const extra = extraFlights(route, best);
+  if (extra === 0) {
+    if (routeScore >= PERFECT_SCORE) return "Perfect route!";
+    if (routeScore >= 980) return "So close!";
+    return "Fewest flights!";
+  }
+  if (extra === 1) return "Good route";
   return "You made it";
 }
 
@@ -66,12 +73,12 @@ export function comparison(route: GameRoute, best: GameRoute, routeScore: number
   if (sameAirports) return "You found the best route.";
   if (routeScore >= PERFECT_SCORE) return "As good as the best route: well found.";
 
-  const extraFlights = route.legKm.length - best.legKm.length;
+  const extra = extraFlights(route, best);
   const extraKm = route.totalKm - best.totalKm;
   const longer = `${formatKm(Math.abs(extraKm))} ${extraKm >= 0 ? "longer" : "shorter"}`;
 
-  if (extraFlights <= 0) return `Same number of flights as the best route, but ${longer}.`;
-  const more = plural(extraFlights, "flight");
+  if (extra === 0) return `Same number of flights as the best route, but ${longer}.`;
+  const more = plural(extra, "flight");
   if (extraKm <= 0) {
     return `${extraKm < 0 ? `${longer}, but` : "As far, but"} ${more} more: the fewest flights always wins.`;
   }
@@ -118,10 +125,11 @@ export function puzzleUrl(puzzle: GamePuzzle): string {
 export function shareText(
   puzzle: GamePuzzle,
   route: GameRoute,
+  best: GameRoute,
   routeScore: number,
   misses: number,
 ): string {
-  const stars = starCount(routeScore);
+  const stars = starCount(route, best);
   return [
     `Flight Companion route game · ${puzzleLabel(puzzle)}`,
     `${puzzle.departure.iata} → ${puzzle.arrival.iata}`,

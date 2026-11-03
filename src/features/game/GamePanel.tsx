@@ -21,7 +21,6 @@ import {
   shareText,
   shortDate,
   starCount,
-  TWO_STAR_SCORE,
   verdict,
 } from "./scoring";
 
@@ -53,7 +52,7 @@ function prefersReducedMotion() {
 
 // The star rules, worded the same wherever they are shown. Stars rate the
 // route alone, so the misses that cost points never cost a star.
-const STAR_RULES = `Stars rate your route before misses: three for the best route, two for a route score of ${TWO_STAR_SCORE}+, one for getting there.`;
+const STAR_RULES = "Stars count flights, not distance or misses: three for as few flights as the best route, two for one more, one for getting there.";
 
 // Three rising bars, as many lit as the level: a signal-strength look.
 function LevelBars({ level }: { level: number }) {
@@ -600,7 +599,7 @@ export function GameOver({
   async function share() {
     if (ending.kind !== "finished") return;
     try {
-      await navigator.clipboard.writeText(shareText(puzzle, ending.route, ending.score, misses));
+      await navigator.clipboard.writeText(shareText(puzzle, ending.route, ending.best, ending.score, misses));
       setCopied(true);
     } catch (error) {
       console.error(error);
@@ -619,8 +618,8 @@ export function GameOver({
       <div className="game-body">
         {ending.kind === "finished" ? (
           <div className="game-result">
-            <Stars count={starCount(ending.score)} />
-            <p className="game-verdict">{verdict(ending.score)}</p>
+            <Stars count={starCount(ending.route, ending.best)} />
+            <p className="game-verdict">{verdict(ending.route, ending.best, ending.score)}</p>
             <p className="game-route-score">Route score {ending.score}</p>
             <ScoreRing points={finalScore(ending.score, misses)} />
             <p className="game-comparison">{comparison(ending.route, ending.best, ending.score)}</p>
