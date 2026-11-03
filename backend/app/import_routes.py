@@ -29,6 +29,41 @@ BOGUS_ROUTES = {
     frozenset({"KSQ", "REZ"}),
 }
 
+# One airport the scrape lists under two codes, checked by hand (found with
+# app/close_airports.py): the second code's routes move onto the first and
+# the second is dropped, so the map shows one pin. Migration 0007 merged the
+# ones imported before they were listed; list a new one in a new migration
+# too.
+AIRPORT_MERGES = {
+    # Palm Beach's code changed from PBI to DJT in 2026, and a few routes
+    # are still filed under the old one.
+    "PBI": "DJT",
+    # EuroAirport Basel-Mulhouse-Freiburg has a Swiss code (BSL) and a French
+    # one (MLH), and airlines file under either. BSL's city already names
+    # Mulhouse, so a search for it still finds the airport.
+    "MLH": "BSL",
+}
+
+# Airports the scrape describes wrongly, checked by hand: these fields
+# replace the scrape's. As with the merges, migration 0007 fixed the ones
+# imported before they were listed.
+AIRPORT_FIXES: dict[str, dict] = {
+    # Itilleq's heliport, 45 km south of Sisimiut (its one route), was put on
+    # top of Ilulissat airport, 300 km north.
+    "QJG": {"latitude": 66.57778, "longitude": -53.5},
+    # AHA is Maa Mahamaya Airport in Ambikapur, India, as its Alliance Air
+    # routes to Delhi and Kolkata say. The scrape had it as Naha Air Force
+    # Base, on top of Okinawa's airport.
+    "AHA": {
+        "icao_code": "VEAP",
+        "name": "Maa Mahamaya Airport",
+        "city": "Ambikapur",
+        "country": "India",
+        "latitude": 22.98725,
+        "longitude": 83.196139,
+    },
+}
+
 
 def parse_coordinate(value: object) -> float | None:
     """The scrape occasionally yields null, or a stray trailing comma."""
@@ -51,22 +86,25 @@ def great_circle_km(source: dict, destination: dict) -> int:
 
 
 def collect_airports(raw: dict) -> dict[str, dict]:
-    """Airports usable as a map pin, keyed by IATA."""
+    """Airports usable as a map pin, keyed by IATA. Merged-away codes are
+    left out, and AIRPORT_FIXES applied."""
     airports = {}
     for iata, source in raw.items():
-        latitude = parse_coordinate(source.get("latitude"))
-        longitude = parse_coordinate(source.get("longitude"))
-        if latitude is None or longitude is None:
+        if iata in AIRPORT_MERGES:
             continue
-        airports[iata] = {
+        airport = {
             "iata_code": iata,
             "icao_code": source.get("icao") or None,
             "name": source.get("name") or iata,
             "city": source.get("city_name") or "",
             "country": source.get("country") or "",
-            "latitude": latitude,
-            "longitude": longitude,
+            "latitude": parse_coordinate(source.get("latitude")),
+            "longitude": parse_coordinate(source.get("longitude")),
         }
+        airport.update(AIRPORT_FIXES.get(iata, {}))
+        if airport["latitude"] is None or airport["longitude"] is None:
+            continue
+        airports[iata] = airport
     return airports
 
 
@@ -78,10 +116,12 @@ def collect_routes(
     airlines: dict[str, str] = {}
 
     for source_iata, source in raw.items():
+        # Routes filed under a merged-away code belong to the airport kept.
+        source_iata = AIRPORT_MERGES.get(source_iata, source_iata)
         if source_iata not in airports:
             continue
         for route in source.get("routes") or []:
-            destination_iata = route.get("iata")
+            destination_iata = AIRPORT_MERGES.get(route.get("iata"), route.get("iata"))
             if destination_iata == source_iata or destination_iata not in airports:
                 continue
             if frozenset({source_iata, destination_iata}) in BOGUS_ROUTES:
