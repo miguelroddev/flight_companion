@@ -279,7 +279,8 @@ function Timeline({ path, arrival }: { path: Airport[]; arrival: Airport }) {
         let kind = index === 0 ? "from" : index === path.length - 1 ? "here" : "via";
         if (arrived && index === path.length - 1) kind = "to";
         return (
-          <li key={airport.iata} className={`game-stop game-stop--${kind}`}>
+          // By position: a route can pass through the same airport twice.
+          <li key={`${index}-${airport.iata}`} className={`game-stop game-stop--${kind}`}>
             <span className="game-stop-dot" />
             <span className="game-stop-name" title={airport.name}>
               <strong>{airport.iata}</strong>
@@ -563,9 +564,9 @@ function RouteCard({
         </span>
       </div>
       <ol className="game-route-codes">
-        {route.airports.map((airport) => (
+        {route.airports.map((airport, index) => (
           <li
-            key={airport.iata}
+            key={`${index}-${airport.iata}`}
             title={airport.name}
             className={other && !shared.has(airport.iata) ? "is-different" : undefined}
           >

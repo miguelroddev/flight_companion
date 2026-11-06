@@ -147,13 +147,14 @@ function GamePage({ active }: { active: boolean }) {
 
   const optionsLoading = wantOptions && optionsResult?.iata !== currentIata;
 
-  // Never back to where the route has already been: that is undone, not flown.
+  // Every flight from here, airports already on the route included: going
+  // back to one is another flight (see handlePick), bar the one just flown
+  // from, which takes that flight back.
   const options = useMemo(() => {
     if (!settings.hints) return null;
     if (!wantOptions || optionsLoading) return NO_AIRPORTS;
-    const flown = new Set(path.map((airport) => airport.iata));
-    return (optionsResult?.airports ?? NO_AIRPORTS).filter((airport) => !flown.has(airport.iata));
-  }, [settings.hints, wantOptions, optionsLoading, optionsResult, path]);
+    return optionsResult?.airports ?? NO_AIRPORTS;
+  }, [settings.hints, wantOptions, optionsLoading, optionsResult]);
 
   async function score(route: Airport[]) {
     setBusy(true);
@@ -179,13 +180,17 @@ function GamePage({ active }: { active: boolean }) {
   async function handlePick(airport: Airport) {
     if (!puzzle || !current || ending || busy || arrived) return;
 
-    // Back to an airport already flown through: the route since is undone.
-    const index = path.findIndex((flown) => flown.iata === airport.iata);
-    if (index !== -1) {
-      setPath(path.slice(0, index + 1));
+    // Back to the airport just flown from: that one flight is taken back,
+    // as Undo would. Any other airport already on the route is simply the
+    // next flight, so a loop (Lisbon, Madrid, Paris, Lisbon) is flown like
+    // any route, never cut back to where it started.
+    if (airport.iata === path.at(-2)?.iata) {
+      setPath(path.slice(0, -1));
       setMessage(null);
       return;
     }
+    // Where the player already is: nowhere to fly.
+    if (airport.iata === current.iata) return;
 
     if (path.length - 1 >= puzzle.maxFlights) {
       setMessage(`That's all ${puzzle.maxFlights} flights. Undo one to try another way.`);
