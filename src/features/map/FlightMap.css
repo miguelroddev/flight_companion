@@ -2,6 +2,11 @@
   position: relative;
   width: 100%;
   height: 100%;
+
+  /* The basemap's water (BASEMAP_WATER in mapTheme.ts), showing until the
+     style has loaded and drawn over it: on a first, uncached visit that is
+     a moment in which the page behind would otherwise flash through. */
+  background: #cfe4f5;
 }
 
 /* The hover tag: one line, the airport name and then its code in a navy
