@@ -162,7 +162,12 @@
 .landing h1 span {
   display: block;
 
+  /* The gradient is clipped to the text, but only painted within the box,
+     and the tight line-height leaves the descenders of "g" and "p" below
+     it: room is made for them, then given back so the spacing is unchanged. */
   margin-top: 6px;
+  margin-bottom: -0.25em;
+  padding-bottom: 0.25em;
 
   background: linear-gradient(90deg, var(--landing-navy), #2f6fd6 55%, #3fbaf4);
   background-clip: text;
