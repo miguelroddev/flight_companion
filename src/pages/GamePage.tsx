@@ -92,19 +92,37 @@ function GamePage({ active }: { active: boolean }) {
     }
   }
 
-  // The puzzle in a shared link, opened once: a ref rather than state, so
-  // StrictMode running the effect twice does not deal it twice.
-  const linkOpened = useRef(false);
+  // The puzzle a link names: a shared result's ?difficulty=medium&seed=123,
+  // or the landing page's ?difficulty=medium&daily=1 for today's. Followed
+  // whenever the page comes into view with one, as it stays mounted between
+  // visits (App.tsx), unless that puzzle is already the one being played.
+  // The last link followed is kept in a ref rather than state, so StrictMode
+  // running the effect twice does not deal it twice.
+  const linkFollowed = useRef<string | null>(null);
   useEffect(() => {
-    if (linkOpened.current) return;
-    linkOpened.current = true;
-
+    if (!active) return;
     const difficulty = searchParams.get("difficulty");
-    const seed = Number(searchParams.get("seed"));
-    if (difficulty && DIFFICULTY_IDS.includes(difficulty) && Number.isInteger(seed) && seed >= 0) {
-      void startGame(difficulty as Difficulty, { seed });
+    if (!difficulty || !DIFFICULTY_IDS.includes(difficulty)) return;
+
+    const daily = searchParams.get("daily") === "1";
+    const seedParam = searchParams.get("seed");
+    const seed = Number(seedParam);
+    if (!daily && !(seedParam && Number.isInteger(seed) && seed >= 0)) return;
+
+    const link = daily ? `${difficulty}-daily` : `${difficulty}-${seed}`;
+    const playing =
+      puzzle !== null &&
+      puzzle.difficulty === difficulty &&
+      (daily ? puzzle.daily !== null : puzzle.seed === seed);
+    if (playing || linkFollowed.current === link) {
+      linkFollowed.current = link;
+      return;
     }
-  });
+    linkFollowed.current = link;
+    void startGame(difficulty as Difficulty, daily ? { daily: true } : { seed });
+    // startGame is a plain function, new each render; the link is what counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, searchParams, puzzle]);
 
   // Back from the explore map, whose links know nothing of the game, the
   // address names the puzzle in progress again, so a reload or a copied link

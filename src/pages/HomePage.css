@@ -1,187 +1,680 @@
-#center {
+/* The landing page. Light, in the explore map's own palette (tokens.css):
+   pale blue water, white land, navy for what matters. A full-screen scroller
+   of its own, like the map and the game, so #root's layout (index.css) and
+   its dark mode never reach it. */
+
+.landing {
+  --landing-ink: var(--text-primary);
+  --landing-soft: var(--text-secondary);
+  --landing-navy: var(--route-selected);
+  --landing-sky: #cfe4f5;
+  --landing-line: rgb(15 35 50 / 10%);
+
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  color: var(--landing-soft);
+  background:
+    radial-gradient(60rem 40rem at 78% 18%, rgb(207 228 245 / 70%), transparent 70%),
+    radial-gradient(40rem 30rem at 0% 100%, rgb(207 228 245 / 45%), transparent 70%),
+    linear-gradient(#f7fafc, #ffffff 60%);
+  color-scheme: light;
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.55;
+  letter-spacing: normal;
+  text-align: left;
+}
+
+.landing h1,
+.landing h2,
+.landing h3 {
+  color: var(--landing-ink);
+  font-family: var(--heading);
+}
+
+.landing a {
+  color: inherit;
+}
+
+.landing-icon {
+  flex: none;
+
+  width: 1.15em;
+  height: 1.15em;
+}
+
+/* ---- Navbar ---- */
+
+/* Full width, frosted, its content lined up with the page's 1200px column. */
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  gap: 20px;
-  padding: 32px 20px;
-  text-align: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 14px max(32px, calc((100% - 1200px) / 2 + 32px));
+
+  border-bottom: 1px solid var(--landing-line);
+  background: rgb(247 250 252 / 78%);
+  backdrop-filter: blur(14px);
 }
 
-.hero-image {
-  display: block;
-  width: min(900px, 100%);
-  height: auto;
-  aspect-ratio: 1584 / 672;
-  object-fit: cover;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-}
-
-.intro-text {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.intro-text h1 {
-  margin: 0;
-  color: white;
-}
-
-.intro-text p {
-  margin: 0;
-}
-
-#enter-page {
-  min-height: 8vh;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 20px 20px;
-}
-
-.enter-button {
+.landing-brand {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: min(400px, 100%);
-  padding: 14px 24px;
-  box-sizing: border-box;
+  gap: 10px;
 
-  background: #38bdf8;
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-
-  color: #0b1220;
-  text-decoration: none;
+  color: var(--landing-ink);
   font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+  font-weight: 700;
+  text-decoration: none;
 }
 
-.enter-button--secondary {
-  background: transparent;
-  box-shadow: inset 0 0 0 2px #38bdf8;
-  color: var(--text-h);
+.landing-brand img {
+  width: 28px;
+  height: 28px;
+
+  object-fit: contain;
 }
 
-.enter-button:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 14px 20px -4px rgb(56 189 248 / 35%),
-    0 4px 8px -2px rgb(0 0 0 / 20%);
-}
-
-#next-steps {
+.landing-nav nav {
   display: flex;
-  border-top: 1px solid var(--border);
-  text-align: center;
-}
-
-#next-steps > div {
-  flex: 1 1 0;
-  padding: 32px;
-}
-
-#social {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
+  gap: 6px;
 }
 
-.icon {
-  display: block;
+.landing-nav nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 8px 12px;
+
+  border-radius: 999px;
+  color: var(--landing-soft);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.landing-nav nav a:hover {
+  color: var(--landing-ink);
+  background: rgb(15 35 50 / 6%);
+}
+
+/* ---- Hero ---- */
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 24px;
+
+  max-width: 1200px;
+  min-height: calc(100svh - 80px);
+  margin: 0 auto;
+  padding: 8px 32px 48px;
+  box-sizing: border-box;
+}
+
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 0 0 18px;
+
+  color: var(--landing-navy);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.landing-eyebrow::before {
   width: 22px;
-  height: 22px;
-  margin-bottom: 16px;
+  height: 2px;
+
+  border-radius: 2px;
+  background: currentColor;
+
+  content: "";
 }
 
-#next-steps ul {
+.landing h1 {
+  margin: 0 0 22px;
+
+  font-size: clamp(42px, 5.6vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.landing h1 span {
+  display: block;
+
+  margin-top: 6px;
+
+  background: linear-gradient(90deg, var(--landing-navy), #2f6fd6 55%, #3fbaf4);
+  background-clip: text;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+
+.landing-lede {
+  max-width: 34em;
+  margin: 0 0 30px;
+
+  font-size: 18px;
+}
+
+.landing-ctas {
   display: flex;
-  justify-content: center;
-  list-style: none;
-  padding: 0;
-  margin: 32px 0 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin-bottom: 40px;
 }
 
-#next-steps a {
+.landing-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 
-  padding: 6px 12px;
-  border-radius: 6px;
+  min-height: 48px;
+  padding: 0 18px;
+  box-sizing: border-box;
 
-  color: var(--text-h);
-  background: var(--social-bg);
-  text-decoration: none;
+  border: 1px solid var(--landing-line);
+  border-radius: 12px;
+  color: var(--landing-ink);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(15 35 50 / 6%);
+
   font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
 
-  transition: box-shadow 0.3s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-#next-steps a:hover {
-  box-shadow: var(--shadow);
+.landing-button:hover {
+  box-shadow: 0 10px 24px -8px rgb(15 35 50 / 25%);
+  transform: translateY(-1px);
 }
 
-.button-icon {
+.landing .landing-button--primary {
+  border-color: transparent;
+  color: #ffffff;
+  background: var(--landing-navy);
+  box-shadow: 0 10px 24px -10px rgb(27 52 128 / 70%);
+}
+
+.landing-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+
+  margin: 0;
+  padding-top: 26px;
+
+  border-top: 1px solid var(--landing-line);
+}
+
+.landing-stats div {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.landing-stats dt {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.landing-stats dd {
+  margin: 0;
+
+  color: var(--landing-ink);
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.landing-globe {
+  position: relative;
+
+  width: min(100% + 64px, 720px);
+  margin: 0 -32px 0 auto;
+}
+
+.landing-globe figcaption {
+  max-width: 30em;
+  margin: -24px auto 0;
+
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.landing-orange {
+  color: #c2410c;
+  font-weight: 700;
+}
+
+/* ---- Features ---- */
+
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 72px 32px;
+  box-sizing: border-box;
+}
+
+.landing-features h2 {
+  grid-column: 1 / -1;
+
+  margin: 0 0 8px;
+
+  font-size: clamp(30px, 3.4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.landing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 30px;
+
+  border: 1px solid var(--landing-line);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 80%);
+  box-shadow: 0 24px 48px -32px rgb(15 35 50 / 35%);
+}
+
+.landing-card-kicker {
+  margin: 0;
+
+  color: var(--landing-navy);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.landing-card h3 {
+  margin: 0;
+
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.landing-card ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.landing-card li {
+  position: relative;
+
+  padding-left: 28px;
+}
+
+/* A route-blue tick, drawn rather than an icon font. */
+.landing-card li::before {
+  position: absolute;
+  top: 0.35em;
+  left: 0;
+
   width: 18px;
   height: 18px;
-}
 
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-}
+  border-radius: 50%;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E")
+      center / 12px no-repeat,
+    var(--landing-navy);
 
-.ticks {
-  position: relative;
-  width: 100%;
-}
-
-.ticks::before,
-.ticks::after {
   content: "";
-  position: absolute;
-  top: -4.5px;
-  border: 5px solid transparent;
 }
 
-.ticks::before {
-  left: 0;
-  border-left-color: var(--border);
+.landing-fact {
+  margin: 4px 0 0;
+  padding: 14px 16px;
+
+  border-radius: 12px;
+  background: var(--input-bg);
+
+  font-size: 15px;
 }
 
-.ticks::after {
-  right: 0;
-  border-right-color: var(--border);
+.landing-fact strong {
+  color: var(--landing-ink);
+  font-size: 18px;
 }
 
-@media (max-width: 1024px) {
-  #next-steps {
+.landing-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-top: auto;
+  padding-top: 6px;
+
+  color: var(--landing-navy) !important;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.landing-card-link:hover {
+  text-decoration: underline;
+}
+
+/* ---- Today's route, as a boarding pass ---- */
+
+.landing-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  margin-top: 4px;
+  padding: 18px 20px;
+
+  border-radius: 16px;
+  color: #ffffff !important;
+  background:
+    radial-gradient(28rem 12rem at 100% 0%, rgb(63 186 244 / 28%), transparent 70%),
+    linear-gradient(135deg, #152c4c, #1b3480);
+  box-shadow: 0 18px 36px -20px rgb(21 44 76 / 80%);
+
+  text-decoration: none;
+
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.landing-ticket:hover {
+  box-shadow: 0 24px 44px -20px rgb(21 44 76 / 90%);
+  transform: translateY(-2px);
+}
+
+.landing-ticket-head,
+.landing-ticket-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  font-size: 13px;
+}
+
+.landing-ticket-head {
+  color: rgb(255 255 255 / 75%);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.landing-ticket-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(70px, 1.1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+
+.landing-ticket-end {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+.landing-ticket-end--to {
+  align-items: flex-end;
+
+  text-align: right;
+}
+
+.landing-ticket-end small {
+  color: rgb(255 255 255 / 65%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.landing-ticket-end strong {
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+
+.landing-ticket-end span {
+  overflow: hidden;
+
+  color: rgb(255 255 255 / 80%);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-ticket-path {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  padding-bottom: 6px;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.landing-ticket-path svg {
+  width: 100%;
+  height: 26px;
+
+  fill: none;
+  stroke: rgb(255 255 255 / 55%);
+  stroke-dasharray: 4 5;
+  stroke-width: 1.5;
+}
+
+.landing-ticket-foot {
+  padding-top: 12px;
+
+  border-top: 1px dashed rgb(255 255 255 / 25%);
+  color: rgb(255 255 255 / 80%);
+}
+
+.landing-ticket-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 14px;
+
+  border-radius: 999px;
+  color: #0b2a40;
+  background: #3fbaf4;
+
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ---- Open source ---- */
+
+.landing-oss {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 32px 72px;
+
+  text-align: center;
+}
+
+.landing-oss h2 {
+  margin: 0;
+
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.landing-oss p {
+  margin: 0 0 8px;
+}
+
+.landing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 24px;
+
+  border-top: 1px solid var(--landing-line);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.landing-footer img {
+  width: 20px;
+  height: 20px;
+
+  object-fit: contain;
+}
+
+/* ---- Tablets and phones ---- */
+
+@media (max-width: 960px) {
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+
+    min-height: 0;
+    padding-top: 16px;
+  }
+
+  .landing-globe {
+    width: min(100%, 560px);
+    margin: 0 auto;
+  }
+
+  .landing-features {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phones (MOBILE_MEDIA_QUERY in src/styles/breakpoints.ts) */
+@media (max-width: 760px) {
+  .landing {
+    font-size: 16px;
+  }
+
+  .landing-nav {
+    padding: 12px 16px;
+  }
+
+  /* The brand and GitHub's icon carry the bar; the two pages have the big
+     buttons below. */
+  .landing-nav nav a:not(.landing-nav-github) {
+    display: none;
+  }
+
+  .landing-nav-github span {
+    display: none;
+  }
+
+  .landing-hero,
+  .landing-features,
+  .landing-oss {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .landing-lede {
+    font-size: 16px;
+  }
+
+  /* The globe leads on phones, a size that leaves the headline in view. */
+  .landing-globe {
+    order: -1;
+
+    width: min(100%, 400px);
+    margin: -8px auto 0;
+  }
+
+  /* Explained by the headline right under it. */
+  .landing-globe figcaption {
+    display: none;
+  }
+
+  .landing-ctas {
     flex-direction: column;
+    margin-bottom: 28px;
   }
 
-  #next-steps > div {
-    padding: 24px 20px;
+  .landing-stats {
+    justify-content: space-between;
+    gap: 12px;
   }
 
-  #next-steps ul {
-    margin-top: 20px;
+  .landing-stats dd {
+    font-size: 24px;
   }
 
-  #spacer {
-    height: 48px;
+  .landing-stats dt {
+    font-size: 12px;
+  }
+
+  .landing-features {
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+
+  .landing-card {
+    padding: 22px;
+  }
+
+  .landing-ticket-end strong {
+    font-size: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-button,
+  .landing-ticket {
+    transition: none;
   }
 }
