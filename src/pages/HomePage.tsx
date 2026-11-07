@@ -214,8 +214,8 @@ function HomePage() {
           </h1>
           <p className="landing-lede">
             Pick any airport to see everywhere you can fly direct, and every airline that
-            flies there. No direct flight? Flight Companion finds the one- and two-stop
-            connections for you.
+            flies there. No direct flight? Flight Companion finds the best ways there with a
+            stop or two.
           </p>
           <div className="landing-ctas">
             <Link to="/map" className="landing-button landing-button--primary">
@@ -270,7 +270,7 @@ function HomePage() {
           <h3>See everywhere you can fly</h3>
           <ul>
             <li>Every direct route from any airport, with the airlines that fly it.</li>
-            <li>No direct flight? The one- and two-stop connections, fastest first.</li>
+            <li>No direct flight? Connections with up to two stops, fastest first.</li>
             <li>Narrow it down by alliance, airline, distance and flight time.</li>
           </ul>
           {topHub && (
