@@ -120,9 +120,9 @@
   gap: 24px;
 
   max-width: 1200px;
-  min-height: calc(100svh - 80px);
+  min-height: calc(100svh - 70px);
   margin: 0 auto;
-  padding: 8px 32px 48px;
+  padding: 0 32px 40px;
   box-sizing: border-box;
 }
 
@@ -257,11 +257,17 @@
   line-height: 1.1;
 }
 
+/* The globe sets the hero's height, and the text is centred beside it. The
+   canvas has empty room around the sphere, so the figure's top and bottom
+   are pulled in over it: same size globe, a little less space above the text. */
 .landing-globe {
   position: relative;
+  /* Nudged down to sit level with the text beside it; being relative, the
+     nudge moves nothing else. */
+  top: 8px;
 
   width: min(100% + 64px, 720px);
-  margin: 0 -32px 0 auto;
+  margin: -36px -32px -36px auto;
 }
 
 .landing-globe figcaption {
@@ -592,6 +598,8 @@
   }
 
   .landing-globe {
+    top: 0;
+
     width: min(100%, 560px);
     margin: 0 auto;
   }
